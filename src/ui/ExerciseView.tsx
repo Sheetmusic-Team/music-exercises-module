@@ -10,9 +10,14 @@ import {
   Formatter
 } from 'vexflow';
 
+// stable emoji pool at module scope
+const emojiPool = ['❓','🤔','🧐','❔','💭','🎯','🔎'];
+
+interface SubmitPayload { correct: boolean; selectedIndex: number | null }
+
 interface ExerciseViewProps {
   exercise: Exercise | null;
-  onSubmit: (answer: any) => void;
+  onSubmit: (answer: SubmitPayload) => void;
   allowHints?: boolean;
 }
 
@@ -38,12 +43,34 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     [k: string]: unknown;
   };
 
+
   const data = (exercise?.data || {}) as ExerciseData;
   const hintUnlockTime = (exercise?.hintUnlockTime as number | undefined) ?? 10;
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
 
   const alternatives = (data.alternatives as string[]) || [];
   const correctIndex = typeof data.correct_index === 'number' ? data.correct_index : undefined;
+
+  const hasNotes = Array.isArray(data.notes) && data.notes.length > 0;
+
+  // clamp difficulty to 1..4
+  const difficulty = Math.min(4, Math.max(1, Number(exercise?.difficulty ?? 1)));
+
+  // deterministic emoji selection based on prompt hash (pure)
+  const randomEmojis = React.useMemo(() => {
+    const seedStr = String(exercise?.prompt ?? '');
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+      const cp = seedStr.codePointAt(i) ?? 0;
+      hash = Math.trunc(hash * 31 + cp);
+    }
+    const out: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const idx = Math.abs((hash + i) % emojiPool.length);
+      out.push(emojiPool[idx]);
+    }
+    return out;
+  }, [exercise?.prompt]);
 
   // TIMER
   useEffect(() => {
@@ -68,7 +95,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       if (data.timeSignature) stave.addTimeSignature(data.timeSignature);
       stave.setContext(context).draw();
 
-      const notesData = (data.notes || []) as NoteData[];
+  const notesData = data.notes || [];
       if (!notesData.length) return;
 
       const notes = notesData.map((n) => new StaveNote({ keys: n.keys, duration: n.duration, clef: data.clef || 'treble' }));
@@ -84,7 +111,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       console.error('VEXFLOW ERROR', err);
     }
     // We intentionally omit data.* from deps to keep the effect simple; it re-runs when exercise changes
-  }, [exercise]);
+  }, [exercise, data.clef, data.timeSignature, data.notes]);
 
   // Early render guard
   if (!exercise) {
@@ -116,12 +143,24 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       </div>
 
       <div className={styles.scoreIndicator}>
-        <span className={styles.difficulty}>Dificultad: {exercise.difficulty}/5</span>
+        <span className={styles.difficulty}>Dificultad: {difficulty}/4</span>
       </div>
 
-      <div className={styles.staffContainer}>
-        <div ref={vexRef} className={styles.staff} />
-      </div>
+      {hasNotes ? (
+        <div className={styles.staffContainer}>
+          <div ref={vexRef} className={styles.staff} />
+        </div>
+      ) : (
+        <div className={styles.placeholder} role="img" aria-label="Ejercicio sin notación">
+          <div className={styles.placeholderEmojis}>
+            {randomEmojis.map((e) => (
+              <span key={e} className={styles.placeholderEmoji}>{e}</span>
+            ))}
+          </div>
+          {/* prompt shown centered */}
+          <div className={styles.placeholderPrompt}>{exercise.prompt}</div>
+        </div>
+      )}
 
       {alternatives && alternatives.length > 0 && (
         <div className={styles.choices}>

@@ -474,16 +474,6 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
           <div className={styles.summaryActions}>
             <button onClick={handleCloseSummary} className={styles.endSessionBtn}>Cerrar</button>
-            <button
-              onClick={() => {
-                // start a fresh session (go to mode select)
-                setSessionSummary(null);
-                setAppState('mode-select');
-              }}
-              className={styles.nextBtn}
-            >
-              Empezar otra sesión
-            </button>
           </div>
         </section>
       )}
