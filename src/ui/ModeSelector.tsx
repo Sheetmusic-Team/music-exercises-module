@@ -5,13 +5,17 @@ interface ModeSelectorProps {
   onSelectMode: (mode: 'global' | 'subject') => void;
   onLogout?: () => void;
   studentName: string;
+  authToken?: string | null;
 }
 
 export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onSelectMode,
   onLogout,
   studentName
+  , authToken
 }) => {
+
+  const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL as string) || '';
 
   useEffect(() => {
     console.log('MODE SELECTOR RENDER');
@@ -109,9 +113,26 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
             ${styles.modeCard}
             ${styles.subjectMode}
           `}
-          onClick={() => {
+          onClick={async () => {
             console.log('LOGOUT CLICK');
-            if (onLogout) onLogout();
+            try {
+              const url = BACKEND_URL ? `${BACKEND_URL.replace(/\/$/, '')}/api/auth/logout` : '/api/auth/logout';
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+              const resp = await fetch(url, { method: 'POST', headers });
+              let body: unknown = null;
+              try {
+                const ct = resp.headers.get('content-type') || '';
+                if (ct.includes('application/json')) body = await resp.json();
+              } catch {
+                // ignore non-json or parse errors
+              }
+              console.log('LOGOUT RESPONSE:', resp.status, body);
+            } catch (err) {
+              console.warn('Logout request failed', err);
+            } finally {
+              if (onLogout) onLogout();
+            }
           }}
         >
 

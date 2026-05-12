@@ -324,6 +324,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       <ModeSelector
         onSelectMode={handleModeSelect}
         onLogout={handleLogout}
+        authToken={token}
         studentName={studentName}
       />
     )}
