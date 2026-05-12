@@ -49,6 +49,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   }
 
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const [uiError, setUiError] = React.useState<string | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
   const [loggedIn, setLoggedIn] = useState(false);
 
@@ -82,18 +83,30 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   // Manejar selección de modo
   const handleModeSelect = useCallback(
     (selectedMode: 'global' | 'subject') => {
+      console.log('handleModeSelect', { selectedMode, studentId, token });
       if (selectedMode === 'global') {
         // Iniciar sesión en modo global sin focus
         if (studentId && token) {
-          const sessionController = new FlowController(
-            studentId,
-            token,
-            sessionId,
-            undefined,
-            onEvent
-          );
-          setController(sessionController);
-          loadNextExercise(sessionController);
+          try {
+            const sessionController = new FlowController(
+              studentId,
+              token,
+              sessionId,
+              undefined,
+              onEvent
+            );
+            setController(sessionController);
+            loadNextExercise(sessionController).catch((e) => {
+              console.error('loadNextExercise failed', e);
+              setUiError(String(e));
+            });
+          } catch (err) {
+            console.error('Could not create session controller', err);
+            setUiError('No se pudo iniciar sesión. Revisa la consola.');
+          }
+        } else {
+          console.warn('Missing studentId or token when starting global mode');
+          setUiError('Usuario no autenticado. Por favor inicia sesión.');
         }
       } else {
         // Ir a selector de nodos
@@ -215,24 +228,26 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   function getMotivationalMessage(rate?: number) {
     if (rate == null) return ''
     const p = Math.round(rate * 100)
-    if (p < 50) return 'Falta mejorar — sigue practicando, ¡tú puedes!'
-    if (p < 70) return 'Buen comienzo — vas por buen camino, continúa así.'
-    if (p < 90) return '¡Muy bien! Gran progreso, sigue subiendo el nivel.'
-    return '¡Excelente! Has tenido un desempeño sobresaliente.'
+    if (p <= 19) return 'Necesitas practicar más — ¡sigue intentándolo!'
+    if (p <= 39) return 'Buen inicio — estás en el camino correcto.'
+    if (p <= 59) return 'Vas mejorando — sigue practicando para consolidar lo aprendido.'
+    if (p <= 79) return 'Muy buen progreso — ¡excelente trabajo!'
+    if (p <= 99) return 'Excelente — estás muy cerca de la cima.'
+    return 'Perfecto — ¡rendimiento impecable!'
   }
 
   function getMotivationalEmoji(rate?: number) {
     if (rate == null) return '🎵'
     const p = Math.round(rate * 100)
-    if (p < 50) return '💪' // encourage
-    if (p < 70) return '🙂'
-    if (p < 90) return '😄'
+    if (p <= 19) return '💪'
+    if (p <= 39) return '🙂'
+    if (p <= 59) return '😃'
+    if (p <= 79) return '🥳'
+    if (p <= 99) return '🏅'
     return '🏆'
   }
 
-  function normalizeId(id: string) {
-    try { return String(id).toLowerCase() } catch { return String(id) }
-  }
+  // normalizeId is defined at module top
 
   const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>({})
   const toggleNode = (id: string) => {
@@ -277,6 +292,12 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   return (
   <div className={styles.module}>
+
+    {uiError && (
+      <div className={styles.uiError}>
+        <strong>Error:</strong> {uiError}
+      </div>
+    )}
 
     {loading && (
       <div className={styles.loadingOverlay}>
@@ -340,7 +361,17 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       {sessionSummary && (
         <section className={styles.sessionSummaryCard} aria-label="Resumen de la sesión">
           <div className={styles.summaryHeader}>
-            <img src="/icons.svg" alt="Resultado" className={styles.summaryImage} />
+            {(() => {
+              const emoji = getMotivationalEmoji(sessionSummary.success_rate)
+              return (
+                <div
+                  className={styles.summaryEmoji}
+                  role="img"
+                  aria-label={`Resultado: ${emoji}`}>
+                  {emoji}
+                </div>
+              )
+            })()}
             <div className={styles.summaryTitle}>
               <h2>¡Buen trabajo!</h2>
               <p className={styles.subtitle}>Resumen de tu sesión</p>
