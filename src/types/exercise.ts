@@ -1,16 +1,17 @@
 // Tipos base para ejercicios musicales
 export type Exercise = {
   id: string;
-  type: 'rhythm' | 'melody' | string;
+  type: string;
   prompt: string;
-  data: any; // Puede ser extendido para cada tipo de ejercicio
+  data: Record<string, unknown>;
   difficulty: number;
-  hint?: string; // Pista opcional
-  hintUnlockTime?: number; // Tiempo en segundos para desbloquear pista (default: 10)
+  node?: string; // ID del nodo (1a, 2a, 3a, etc.)
+  hint?: string;
+  hintUnlockTime?: number;
 };
 
 export type Feedback = {
   score: number;
   message?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 };

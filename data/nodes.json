@@ -1,0 +1,252 @@
+{
+  "nodes": [
+    {
+      "id": "1a",
+      "name": "Notas y Ritmo",
+      "type": "habilidad",
+      "level": 1,
+      "generator": "node_1a",
+      "description": "Fundamentos del sistema de notación musical.",
+      "prerequisites": []
+    },
+
+    {
+      "id": "1b",
+      "name": "Entonación Simple",
+      "type": "habilidad",
+      "level": 1,
+      "generator": "node_1b",
+      "description": "Capacidad para cantar o reproducir notas sencillas.",
+      "prerequisites": ["1a"],
+      "locked": true
+    },
+
+    {
+      "id": "2a",
+      "name": "Intervalos",
+      "type": "habilidad",
+      "level": 2,
+      "generator": "node_2a",
+      "description": "Entender y reconocer la distancia entre dos notas.",
+      "prerequisites": ["1a", "1b"]
+    },
+
+    {
+      "id": "2b",
+      "name": "Escalas (mayores y menores)",
+      "type": "habilidad",
+      "level": 2,
+      "generator": "node_2b",
+      "description": "Conocer la estructura de las escalas principales.",
+      "prerequisites": ["2a"]
+    },
+
+    {
+      "id": "2c",
+      "name": "Solfeo a dos voces",
+      "type": "habilidad",
+      "level": 2,
+      "generator": "node_2c",
+      "description": "Leer y cantar simultáneamente dos líneas melódicas.",
+      "prerequisites": ["1b"],
+      "locked": true
+    },
+
+    {
+      "id": "3a",
+      "name": "Acordes (tríadas)",
+      "type": "habilidad",
+      "level": 3,
+      "generator": "node_3a",
+      "description": "Reconocer y formar acordes de tres notas.",
+      "prerequisites": ["2b"]
+    },
+
+    {
+      "id": "3b",
+      "name": "Progresiones armónicas básicas",
+      "type": "habilidad",
+      "level": 3,
+      "generator": "node_3b",
+      "description": "Comprender las secuencias de acordes más comunes.",
+      "prerequisites": ["3a"],
+      "locked": true
+    },
+
+    {
+      "id": "3c",
+      "name": "Dictado melódico",
+      "type": "habilidad",
+      "level": 3,
+      "generator": "node_3c",
+      "description": "Transcribir melodías que se escuchan.",
+      "prerequisites": ["2a", "2b"],
+      "locked": true
+    },
+
+    {
+      "id": "4a",
+      "name": "Acordes con séptima",
+      "type": "habilidad",
+      "level": 4,
+      "generator": "node_4a",
+      "description": "Conocer y formar acordes de cuatro notas.",
+      "prerequisites": ["3a"],
+      "locked": true
+    },
+
+    {
+      "id": "4b",
+      "name": "Cadencias",
+      "type": "habilidad",
+      "level": 4,
+      "generator": "node_4b",
+      "description": "Entender las resoluciones finales de las frases musicales.",
+      "prerequisites": ["3b"],
+      "locked": true
+    },
+
+    {
+      "id": "4c",
+      "name": "Dictado armónico",
+      "type": "habilidad",
+      "level": 4,
+      "generator": "node_4c",
+      "description": "Transcribir secuencias de acordes que se escuchan.",
+      "prerequisites": ["4a"],
+      "locked": true
+    },
+
+    {
+      "id": "5a",
+      "name": "Funciones armónicas",
+      "type": "habilidad",
+      "level": 5,
+      "generator": "node_5a",
+      "description": "Conocer las funciones Tónica, Subdominante y Dominante.",
+      "prerequisites": ["3b"],
+      "locked": true
+    },
+
+    {
+      "id": "5b",
+      "name": "Conexión de acordes",
+      "type": "habilidad",
+      "level": 5,
+      "generator": "node_5b",
+      "description": "Aprender a enlazar acordes de forma fluida.",
+      "prerequisites": ["5a"],
+      "locked": true
+    },
+
+    {
+      "id": "6a",
+      "name": "Dominantes secundarias",
+      "type": "habilidad",
+      "level": 6,
+      "generator": "node_6a",
+      "description": "Identificar y usar acordes dominantes que no pertenecen a la tonalidad principal.",
+      "prerequisites": ["5a"],
+      "locked": true
+    },
+
+    {
+      "id": "6b",
+      "name": "Modulaciones básicas",
+      "type": "habilidad",
+      "level": 6,
+      "generator": "node_6b",
+      "description": "Realizar cambios sencillos de tonalidad.",
+      "prerequisites": ["6a"],
+      "locked": true
+    },
+
+    {
+      "id": "6c",
+      "name": "Análisis de frases musicales",
+      "type": "habilidad",
+      "level": 6,
+      "generator": "node_6c",
+      "description": "Descomponer y entender la estructura de una frase musical.",
+      "prerequisites": ["5b"],
+      "locked": true
+    },
+
+    {
+      "id": "7a",
+      "name": "Armonía modal",
+      "type": "habilidad",
+      "level": 7,
+      "generator": "node_7a",
+      "description": "Aplicar acordes derivados de los modos.",
+      "prerequisites": ["6b"],
+      "locked": true
+    },
+
+    {
+      "id": "7b",
+      "name": "Acordes alterados",
+      "type": "habilidad",
+      "level": 7,
+      "generator": "node_7b",
+      "description": "Conocer y usar acordes con notas alteradas.",
+      "prerequisites": ["6a"],
+      "locked": true
+    },
+
+    {
+      "id": "7c",
+      "name": "Sustituciones",
+      "type": "habilidad",
+      "level": 7,
+      "generator": "node_7c",
+      "description": "Reemplazar un acorde por otro con una función similar.",
+      "prerequisites": ["7b"],
+      "locked": true
+    },
+
+    {
+      "id": "8a",
+      "name": "Contrapunto",
+      "type": "habilidad",
+      "level": 8,
+      "generator": "node_8a",
+      "description": "Componer y analizar música con múltiples líneas melódicas independientes.",
+      "prerequisites": ["6c"],
+      "locked": true
+    },
+
+    {
+      "id": "8b",
+      "name": "Armonía cromática",
+      "type": "habilidad",
+      "level": 8,
+      "generator": "node_8b",
+      "description": "Utilizar la escala cromática para la construcción de acordes y progresiones.",
+      "prerequisites": ["7b"],
+      "locked": true
+    },
+
+    {
+      "id": "8c",
+      "name": "Análisis de obras complejas",
+      "type": "habilidad",
+      "level": 8,
+      "generator": "node_8c",
+      "description": "Analizar la estructura armónica y formal de obras avanzadas.",
+      "prerequisites": ["8a", "8b"],
+      "locked": true
+    },
+
+    {
+      "id": "9a",
+      "name": "Lectura y composición de Partituras",
+      "type": "habilidad",
+      "level": 9,
+      "generator": "node_9a",
+      "description": "Habilidad para leer y comprender partituras completas de manera fluida.",
+      "prerequisites": ["8c"],
+      "locked": true
+    }
+  ]
+}

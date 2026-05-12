@@ -1,0 +1,114 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+}
+
+.header {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.backBtn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.header h1 {
+  color: white;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.levelSection {
+  max-width: 1200px;
+  margin: 0 auto 3rem;
+}
+
+.levelTitle {
+  color: white;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.nodeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.nodeCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.nodeCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.nodeId {
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.nodeCard h3 {
+  color: #333;
+  margin: 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.nodeCard p {
+  color: #666;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(100%);
+}
+
+.locked:hover {
+  transform: none;
+}
+
+.lockedText {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #999;
+}
