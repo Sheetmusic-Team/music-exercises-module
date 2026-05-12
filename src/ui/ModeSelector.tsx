@@ -3,11 +3,13 @@ import styles from './ModeSelector.module.css';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'global' | 'subject') => void;
+  onLogout?: () => void;
   studentName: string;
 }
 
 export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onSelectMode,
+  onLogout,
   studentName
 }) => {
 
@@ -97,6 +99,36 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
 
           <span className={styles.description}>
             Elige el nodo en el que quieres entrenar
+          </span>
+
+        </button>
+
+        {/* Logout card placed after 'Por Asignatura' as requested */}
+        <button
+          className={`
+            ${styles.modeCard}
+            ${styles.subjectMode}
+          `}
+          onClick={() => {
+            console.log('LOGOUT CLICK');
+            if (onLogout) onLogout();
+          }}
+        >
+
+          <div className={styles.icon}>
+          😓
+          </div>
+
+          <h2>
+            Salir
+          </h2>
+
+          <p>
+            Cerrar sesión
+          </p>
+
+          <span className={styles.description}>
+            Volver al inicio
           </span>
 
         </button>

@@ -150,6 +150,12 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 10px 40px rgba(30,20,60,0.18);
+  /* Keep full width and layout as column; let content define height on desktop */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
 }
 .summaryHeader {
   display:flex;
@@ -192,8 +198,15 @@
 .motivational { margin-top:8px; padding:10px; background: rgba(0,0,0,0.12); border-radius:8px; color: #fff }
 
 @media (max-width: 768px) {
-  .sessionSummaryCard { padding:12px }
+  .sessionSummaryCard {
+    padding: 10px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
   .summaryHeader { gap:10px }
   .summaryImage { width:72px; height:72px }
   .summaryStats { flex-direction:column }
+  .summaryTitle h2 { font-size: 1.2rem }
+  .statValue { font-size:18px }
 }

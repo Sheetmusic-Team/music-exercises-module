@@ -51,14 +51,12 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [uiError, setUiError] = React.useState<string | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
-  const [loggedIn, setLoggedIn] = useState(false);
 
   // Manejar login
   const handleLogin = useCallback((accessToken: string, id: string, name: string) => {
     setToken(accessToken);
     setStudentId(id);
     setStudentName(name);
-    setLoggedIn(true);
     setAppState('mode-select');
   }, []);
 
@@ -282,7 +280,6 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     setStudentName(null);
     setController(null);
     setAppState('login');
-    setLoggedIn(false);
   }, []);
 
   // Volver de node selector
@@ -313,15 +310,9 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     {appState === 'mode-select' && studentName && (
       <ModeSelector
         onSelectMode={handleModeSelect}
+        onLogout={handleLogout}
         studentName={studentName}
       />
-    )}
-
-    {loggedIn && (
-      <div className={styles.topActions}>
-        <button className={styles.backBtn} onClick={() => setAppState('mode-select')}>← Atrás</button>
-        <button className={styles.logoutBtn} onClick={handleLogout}>Cerrar sesión</button>
-      </div>
     )}
 
     {appState === 'node-select' && (
