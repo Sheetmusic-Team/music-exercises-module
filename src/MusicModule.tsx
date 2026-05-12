@@ -62,9 +62,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   // Cargar siguiente ejercicio
   const loadNextExercise = useCallback(async (ctrl: FlowController) => {
+    console.info('[MusicModule] loadNextExercise: start')
+    // Clear current exercise immediately to show loading state and avoid stale UI
+    setExercise(null);
     setLoading(true);
     try {
       const ex = await ctrl.loadExercise();
+      console.info('[MusicModule] loadNextExercise: got exercise', ex)
       setExercise(ex);
       setAppState('exercise');
     } catch (error) {
@@ -74,6 +78,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
         message: `Error al cargar ejercicio: ${error}`,
       });
     } finally {
+      console.info('[MusicModule] loadNextExercise: finished')
       setLoading(false);
     }
   }, [onEvent]);
@@ -158,11 +163,19 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   // Ir al siguiente ejercicio
   const handleNextExercise = useCallback(async () => {
+    console.info('[MusicModule] handleNextExercise: user requested next')
     setShowFeedback(false);
     setFeedback(null);
     if (controller) {
-      // Cargar siguiente ejercicio (sin mostrar recompensa previa)
-      await loadNextExercise(controller);
+      try {
+        // Cargar siguiente ejercicio (sin mostrar recompensa previa)
+        await loadNextExercise(controller);
+      } catch (err) {
+        console.error('[MusicModule] handleNextExercise: load failed', err)
+        setUiError(String(err));
+      }
+    } else {
+      console.warn('[MusicModule] handleNextExercise: no controller available')
     }
   }, [controller, loadNextExercise]);
 

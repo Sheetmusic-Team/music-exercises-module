@@ -221,11 +221,71 @@ export const drlClient: DRLClient = {
       }
 
       console.log(
-        'EXERCISE:',
+        'EXERCISE (raw):',
         data.data.exercise
       );
 
-      return data.data.exercise;
+      // Defensive normalization: ensure returned exercise has an id and normalized node
+      const ex = data.data.exercise as Record<string, unknown>;
+      try {
+        if (ex) {
+          if (!ex.id) {
+            // create a fallback stable-ish id
+            const node = (ex.node as string) ?? (ex.node_id as string) ?? 'exercise'
+            ex.id = `${String(node).toLowerCase()}-${Date.now()}`
+          }
+          if (ex.node && typeof ex.node === 'string') ex.node = ex.node.toLowerCase()
+          // Normalize prompt: some generators return `exercise` or `question` instead of `prompt`
+          if (!ex.prompt) {
+            if (ex.exercise && typeof ex.exercise === 'string') ex.prompt = ex.exercise
+            else if (ex.question && typeof ex.question === 'string') ex.prompt = ex.question
+          }
+
+          // Normalize expected answer: banks/generators may use `answer` or `correct`
+          if (!ex.expected_answer) {
+            if (ex.answer && typeof ex.answer !== 'object') ex.expected_answer = ex.answer
+            else if (ex.correct && typeof ex.correct !== 'object') ex.expected_answer = ex.correct
+            else if (ex.data && typeof ex.data === 'object') {
+              try {
+                const d = ex.data as Record<string, unknown>;
+                const alts = d.alternatives as unknown;
+                const ci = d.correct_index as unknown;
+                if (Array.isArray(alts) && typeof ci === 'number') {
+                  const idx = Number(ci);
+                  if (idx >= 0 && idx < (alts as any[]).length) {
+                    const val = (alts as any[])[idx];
+                    if (typeof val !== 'undefined') ex.expected_answer = String(val);
+                  }
+                }
+              } catch (e) {
+                /* swallow */
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Could not normalize exercise id/node', e)
+      }
+
+      // Ensure `data` object exists and move top-level alternatives/correct_index into it
+      try {
+        if (ex) {
+          if (!ex.data || typeof ex.data !== 'object') ex.data = {} as Record<string, unknown>;
+          const dataObj = ex.data as Record<string, unknown>;
+          if (!dataObj.alternatives && ex.alternatives) dataObj.alternatives = ex.alternatives;
+          if (!dataObj.correct_index && (typeof ex.correct_index === 'number' || typeof ex.correct_index === 'string')) {
+            // coerce numeric-like strings
+            const ci = Number((ex as any).correct_index);
+            if (!Number.isNaN(ci)) dataObj.correct_index = ci;
+          }
+        }
+      } catch (e) {
+        // non-fatal
+      }
+
+      console.log('EXERCISE (normalized):', ex);
+
+      return ex as Exercise;
 
     } catch (error) {
 

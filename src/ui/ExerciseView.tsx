@@ -13,11 +13,12 @@ import {
 // stable emoji pool at module scope
 const emojiPool = ['❓','🤔','🧐','❔','💭','🎯','🔎'];
 
-interface SubmitPayload { correct: boolean; selectedIndex: number | null }
+interface SubmitPayload extends Record<string, unknown> { correct: boolean; selectedIndex: number | null }
 
 interface ExerciseViewProps {
   exercise: Exercise | null;
-  onSubmit: (answer: SubmitPayload) => void;
+  // Accept sync or async submit handlers
+  onSubmit: (answer: SubmitPayload) => void | Promise<void>;
   allowHints?: boolean;
 }
 
@@ -129,7 +130,13 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       if (typeof correctIndex === 'number') correct = selectedIndex === correctIndex;
       else correct = selectedIndex !== null;
     }
-    onSubmit({ correct, selectedIndex });
+    try {
+      console.info('[ExerciseView] submit', { correct, selectedIndex })
+      const ret = onSubmit({ correct, selectedIndex });
+      Promise.resolve(ret).catch((e) => console.error('[ExerciseView] onSubmit async error', e));
+    } catch (e) {
+      console.error('[ExerciseView] onSubmit error', e)
+    }
   }
 
   return (
@@ -153,12 +160,10 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       ) : (
         <div className={styles.placeholder} role="img" aria-label="Ejercicio sin notación">
           <div className={styles.placeholderEmojis}>
-            {randomEmojis.map((e) => (
-              <span key={e} className={styles.placeholderEmoji}>{e}</span>
+            {randomEmojis.map((e, i) => (
+              <span key={`${e}-${i}`} className={styles.placeholderEmoji}>{e}</span>
             ))}
           </div>
-          {/* prompt shown centered */}
-          <div className={styles.placeholderPrompt}>{exercise.prompt}</div>
         </div>
       )}
 
@@ -166,7 +171,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
         <div className={styles.choices}>
           {alternatives.map((alt, i) => (
             <button
-              key={alt}
+              key={`${alt}-${i}`}
               className={`${styles.choiceBtn} ${selectedIndex === i ? styles.selected : ''}`}
               onClick={() => setSelectedIndex(i)}
               aria-pressed={selectedIndex === i}

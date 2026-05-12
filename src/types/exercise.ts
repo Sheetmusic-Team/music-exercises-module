@@ -10,8 +10,14 @@ export type Exercise = {
   hintUnlockTime?: number;
 };
 
+export type FeedbackDetails = {
+  correctNotes?: number;
+  totalNotes?: number;
+  [k: string]: unknown;
+};
+
 export type Feedback = {
   score: number;
   message?: string;
-  details?: Record<string, unknown>;
+  details?: FeedbackDetails | null;
 };
