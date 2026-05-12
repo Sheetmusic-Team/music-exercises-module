@@ -10,7 +10,7 @@ import { ExerciseView } from './ui/ExerciseView';
 import { FeedbackView } from './ui/FeedbackView';
 import styles from './MusicModule.module.css';
 
-type AppState = 'login' | 'mode-select' | 'node-select' | 'exercise' | 'feedback';
+type AppState = 'login' | 'mode-select' | 'node-select' | 'exercise' | 'feedback' | 'summary';
 
 interface MusicModuleConfig {
   mode?: 'practice' | 'test';
@@ -32,13 +32,27 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  interface SessionSummary {
+    total_reward: number;
+    node_rewards: Record<string, number>;
+    updated_proficiencies: Record<string, number>;
+    success_rate: number;
+    next_recommendations?: string[];
+    drl_training_triggered?: boolean;
+    buffer_size?: number;
+  }
+
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   // Manejar login
   const handleLogin = useCallback((accessToken: string, id: string, name: string) => {
     setToken(accessToken);
     setStudentId(id);
     setStudentName(name);
+    setLoggedIn(true);
     setAppState('mode-select');
   }, []);
 
@@ -109,6 +123,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       setLoading(true);
       try {
         const correct = (answer.correct as boolean) === true;
+        // Guardar evento localmente y mostrar feedback mínimo.
         const fb = await controller.submitAnswer(correct);
         setFeedback(fb);
         setShowFeedback(true);
@@ -130,6 +145,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     setShowFeedback(false);
     setFeedback(null);
     if (controller) {
+      // Cargar siguiente ejercicio (sin mostrar recompensa previa)
       await loadNextExercise(controller);
     }
   }, [controller, loadNextExercise]);
@@ -139,11 +155,24 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     if (!controller) return;
     setLoading(true);
     try {
-      await controller.endSession();
-      setAppState('mode-select');
-      setExercise(null);
-      setFeedback(null);
-      setController(null);
+      const result = await controller.endSession();
+
+      // Save the summary to show to the student
+      setSessionSummary(result);
+
+      // Enviar evento externo de sesión completada
+      onEvent({
+        type: 'session_completed',
+        sessionId: sessionId,
+        totalEvents: controller.getSessionEvents().length,
+        summary: result,
+      });
+
+  // Keep UI on a summary view; allow the student to close session explicitly
+  setAppState('summary');
+  setExercise(null);
+  setFeedback(null);
+  setController(null);
     } catch (error) {
       console.error('Error ending session:', error);
       onEvent({
@@ -153,7 +182,24 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     } finally {
       setLoading(false);
     }
-  }, [controller, onEvent]);
+  }, [controller, onEvent, sessionId]);
+
+  const handleCloseSummary = useCallback(() => {
+    setSessionSummary(null);
+    // after closing the summary go back to mode-select (stay logged in)
+    setAppState('mode-select');
+  }, []);
+
+
+
+  const handleLogout = useCallback(() => {
+    setToken(null);
+    setStudentId(null);
+    setStudentName(null);
+    setController(null);
+    setAppState('login');
+    setLoggedIn(false);
+  }, []);
 
   // Volver de node selector
   const handleBackFromNodeSelector = useCallback(() => {
@@ -164,8 +210,9 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   <div className={styles.module}>
 
     {loading && (
-      <div>
-        <h2>Cargando...</h2>
+      <div className={styles.loadingOverlay}>
+        <div className={styles.spinner} />
+        <h3>Cargando...</h3>
       </div>
     )}
 
@@ -178,6 +225,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
         onSelectMode={handleModeSelect}
         studentName={studentName}
       />
+    )}
+
+    {loggedIn && (
+      <div className={styles.topActions}>
+        <button className={styles.backBtn} onClick={() => setAppState('mode-select')}>← Atrás</button>
+        <button className={styles.logoutBtn} onClick={handleLogout}>Cerrar sesión</button>
+      </div>
     )}
 
     {appState === 'node-select' && (
@@ -212,6 +266,91 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
             Terminar Sesión
           </button>
         </div>
+      )}
+
+      {sessionSummary && (
+        <section className={styles.sessionSummaryCard} aria-label="Resumen de la sesión">
+          <div className={styles.summaryHeader}>
+            <img src="/icons.svg" alt="Resultado" className={styles.summaryImage} />
+            <div className={styles.summaryTitle}>
+              <h2>¡Buen trabajo!</h2>
+              <p className={styles.subtitle}>Resumen de tu sesión</p>
+            </div>
+          </div>
+
+          <div className={styles.summaryStats}>
+            <div className={styles.bigStat}>
+              <div className={styles.statLabel}>Recompensa total</div>
+              <div className={styles.statValue}>{Math.round((sessionSummary.total_reward ?? 0) * 100) / 100}</div>
+            </div>
+
+            <div className={styles.bigStat}>
+              <div className={styles.statLabel}>Tasa de éxito</div>
+              <div className={styles.statValue}>{Math.round((sessionSummary.success_rate ?? 0) * 100)}%</div>
+            </div>
+          </div>
+
+          <div className={styles.summarySection}>
+            <h3>Recompensas por nodo</h3>
+            <div className={styles.nodeList}>
+              {Object.entries(sessionSummary.node_rewards || {}).map(([node, reward]) => (
+                <div key={node} className={styles.nodeItem}>
+                  <div className={styles.nodeName}>{node}</div>
+                  <div className={styles.nodeReward}>{Math.round(reward * 100) / 100}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.summarySection}>
+            <h3>Proficiencias actualizadas</h3>
+            <div className={styles.proficiencyList}>
+              {Object.entries(sessionSummary.updated_proficiencies || {}).map(([node, delta]) => {
+                // Render a small horizontal bar showing sign and magnitude
+                const magnitude = Math.min(Math.abs(delta), 1);
+                const positive = delta >= 0;
+                return (
+                  <div key={node} className={styles.proficiencyItem}>
+                    <div className={styles.proficiencyLabel}>{node}</div>
+                    <div className={styles.proficiencyBarWrap}>
+                      <div
+                        className={styles.proficiencyBar}
+                        style={{
+                          width: `${Math.round(magnitude * 100)}%`,
+                          background: positive ? 'linear-gradient(90deg,#4caf50,#8bc34a)' : 'linear-gradient(90deg,#f44336,#ff7961)'
+                        }}
+                      />
+                    </div>
+                    <div className={styles.proficiencyDelta}>{(delta >= 0 ? '+' : '') + (Math.round(delta * 100) / 100)}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className={styles.summarySection}>
+            <h3>Siguientes recomendaciones</h3>
+            <div className={styles.recommendations}>
+              {(sessionSummary.next_recommendations || []).map((r) => (
+                <span key={r} className={styles.recommendationBadge}>{r}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.summaryActions}>
+            <button onClick={handleCloseSummary} className={styles.endSessionBtn}>Cerrar</button>
+            <button
+              onClick={() => {
+                // start a fresh session (go to mode select)
+                setSessionSummary(null);
+                setAppState('mode-select');
+              }}
+              className={styles.nextBtn}
+            >
+              Empezar otra sesión
+            </button>
+          </div>
+        </section>
       )}
 
     {appState === 'exercise' &&

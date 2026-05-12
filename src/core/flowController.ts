@@ -11,14 +11,14 @@ interface SessionEvent {
 }
 
 export class FlowController {
-  private studentId: string;
-  private token: string;
-  private sessionId: string;
-  private focusNode: string | undefined;
-  private onEvent: (event: MusicEvent) => void;
+  private readonly studentId: string;
+  private readonly token: string;
+  private readonly sessionId: string;
+  private readonly focusNode: string | undefined;
+  private readonly onEvent: (event: MusicEvent) => void;
   private currentExercise: Exercise | null = null;
   private feedback: Feedback | null = null;
-  private sessionEvents: SessionEvent[] = [];
+  private readonly sessionEvents: SessionEvent[] = [];
   private startTime: number = 0;
 
   constructor(
@@ -73,29 +73,25 @@ export class FlowController {
       response_time: responseTime,
     };
 
+    // Guardar evento localmente en el buffer de la sesión.
+    // No hacemos POST por cada ejercicio: enviaremos todo al final de la sesión.
     this.sessionEvents.push(event);
 
-    try {
-      this.feedback = await drlClient.submitSessionEvent(
-        this.studentId,
-        this.token,
-        event
-      );
+    // Emitir evento local para UI: sin reward (se calcula al terminar la sesión)
+    this.onEvent({
+      type: 'answer_submitted',
+      correct,
+    });
 
-      this.onEvent({
-        type: 'answer_submitted',
-        correct,
-        reward: (this.feedback.details as any)?.reward,
-      });
+    // Devolver retroalimentación local mínima (solo para indicar correcto/incorrecto)
+    const localFeedback: Feedback = {
+      score: correct ? 100 : 0,
+      message: correct ? '✅ ¡Correcto!' : '❌ Intenta de nuevo',
+      details: {},
+    };
 
-      return this.feedback;
-    } catch (error) {
-      this.onEvent({
-        type: 'error',
-        message: `Error al enviar respuesta: ${error}`,
-      });
-      throw error;
-    }
+    this.feedback = localFeedback;
+    return this.feedback;
   }
 
   // Finalizar la sesión

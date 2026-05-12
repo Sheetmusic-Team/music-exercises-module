@@ -24,9 +24,13 @@ interface StudentStats {
 }
 
 interface SessionResult {
-  sessionId: string;
-  rewards: Record<string, number>;
-  proficiencies: Record<string, number>;
+  total_reward: number;
+  node_rewards: Record<string, number>;
+  updated_proficiencies: Record<string, number>;
+  success_rate: number;
+  next_recommendations?: string[];
+  drl_training_triggered?: boolean;
+  buffer_size?: number;
 }
 
 export interface DRLClient {
@@ -251,33 +255,17 @@ export const drlClient: DRLClient = {
       event
     );
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/sessions/end`,
-      {
-
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json',
-
-          Authorization:
-            `Bearer ${token}`,
-        },
-
-        body: JSON.stringify({
-
-          events: [event],
-
-          sessionMetadata: {
-            completedAt:
-              new Date().toISOString(),
-          },
-
-        }),
-
-      }
-    );
+    const response = await fetch(`${BACKEND_URL}/api/sessions/end`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        session_events: [event],
+        sessionMetadata: { completedAt: new Date().toISOString() },
+      }),
+    });
 
     console.log(
       'SUBMIT RESPONSE STATUS:',
@@ -300,34 +288,19 @@ export const drlClient: DRLClient = {
 
     }
 
-    const result =
-      await response.json();
+    const result = await response.json();
+    console.log('SUBMIT RESULT:', result);
 
-    console.log(
-      'SUBMIT RESULT:',
-      result
-    );
+    const drl = result?.data ?? result;
+    const total = drl?.total_reward ?? 0;
 
     return {
-
-      score: Math.round(
-        (result.rewards?.total || 0)
-        * 100
-      ),
-
-      message:
-        event.correct
-          ? '✅ ¡Correcto!'
-          : '❌ Intenta de nuevo',
-
+      score: Math.round(total * 100),
+      message: event.correct ? '✅ ¡Correcto!' : '❌ Intenta de nuevo',
       details: {
-        reward:
-          result.rewards?.total || 0,
-
-        proficiencies:
-          result.proficiencies,
+        reward: total,
+        proficiencies: drl?.updated_proficiencies ?? {},
       },
-
     };
 
   },
@@ -347,33 +320,17 @@ export const drlClient: DRLClient = {
       events
     );
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/sessions/end`,
-      {
-
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json',
-
-          Authorization:
-            `Bearer ${token}`,
-        },
-
-        body: JSON.stringify({
-
-          events,
-
-          sessionMetadata: {
-            completedAt:
-              new Date().toISOString(),
-          },
-
-        }),
-
-      }
-    );
+    const response = await fetch(`${BACKEND_URL}/api/sessions/end`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        session_events: events,
+        sessionMetadata: { completedAt: new Date().toISOString() },
+      }),
+    });
 
     console.log(
       'END SESSION STATUS:',
@@ -396,15 +353,10 @@ export const drlClient: DRLClient = {
 
     }
 
-    const data =
-      await response.json();
-
-    console.log(
-      'END SESSION RESPONSE:',
-      data
-    );
-
-    return data;
+    const json = await response.json();
+    const drl = json?.data ?? json;
+    console.log('END SESSION RESPONSE:', drl);
+    return drl;
 
   },
 
