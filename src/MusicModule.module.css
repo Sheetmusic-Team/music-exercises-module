@@ -144,29 +144,38 @@
 .sessionSummaryCard {
   max-width: 920px;
   margin: 0 auto;
-  background: linear-gradient(180deg, #ffffff, #fbfbfd);
+  /* Use system gradient similar to app (purple -> blue) */
+  background: linear-gradient(180deg, #6e3bd8 0%, #3b7bd8 100%);
+  color: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 8px 30px rgba(20,20,40,0.08);
+  box-shadow: 0 10px 40px rgba(30,20,60,0.18);
 }
 .summaryHeader {
   display:flex;
   gap:16px;
   align-items:center;
 }
-.summaryImage { width:96px; height:96px; object-fit:cover; border-radius:8px }
+.summaryImage { width:96px; height:96px; object-fit:cover; border-radius:8px; background: rgba(255,255,255,0.15); padding:10px }
 .summaryTitle h2 { margin:0; }
-.subtitle { margin:0; color:#666; }
+.subtitle { margin:0; color:rgba(255,255,255,0.9); }
 .summaryStats { display:flex; gap:20px; margin-top:12px }
-.bigStat { flex:1; background:#f7f7fb; padding:12px; border-radius:8px; text-align:center }
-.statLabel { color:#666; font-size:13px }
-.statValue { font-size:22px; font-weight:700; margin-top:6px }
+.bigStat { flex:1; background: rgba(255,255,255,0.08); padding:12px; border-radius:8px; text-align:center }
+.statLabel { color: rgba(255,255,255,0.85); font-size:13px }
+.statValue { font-size:22px; font-weight:700; margin-top:6px; color: white }
 .summarySection { margin-top:18px }
 .nodeList { display:flex; gap:10px; flex-wrap:wrap }
-.nodeItem { background:#fff; padding:8px 12px; border-radius:8px; box-shadow:0 4px 12px rgba(20,20,40,0.04); display:flex; gap:12px; align-items:center }
-.nodeName { font-weight:600 }
-.nodeReward { color:#333 }
+.nodeName { font-weight:700; color: white }
+.nodeReward { color: #fff }
 .proficiencyList { display:flex; flex-direction:column; gap:8px }
+.nodeWrapper { display:flex; flex-direction:column; gap:6px }
+.nodeItem { background: rgba(255,255,255,0.06); padding:8px 12px; border-radius:8px; display:flex; gap:12px; align-items:center; width:100%; border: none; text-align: left; justify-content:space-between; cursor:pointer }
+.nodeItem:focus { outline:2px solid rgba(255,255,255,0.18); }
+.nodeId { color: rgba(255,255,255,0.7); font-size:12px }
+.nodeRight { display:flex; align-items:center }
+.nodeExpanded { padding:10px; background: rgba(0,0,0,0.08); border-radius:6px }
+.nodeMeta { color: rgba(255,255,255,0.8); font-size:13px; margin-top:6px }
+.nodePrereq { color: rgba(255,255,255,0.8); font-size:13px; margin-top:6px }
 .proficiencyItem { display:flex; gap:12px; align-items:center }
 .proficiencyLabel { width:48px; font-weight:600 }
 .proficiencyBarWrap { flex:1; background:#eee; height:10px; border-radius:6px; overflow:hidden }
@@ -175,6 +184,11 @@
 .recommendations { display:flex; gap:8px; flex-wrap:wrap }
 .recommendationBadge { background:#f0f7ff; padding:6px 10px; border-radius:999px; color:#0366d6 }
 .summaryActions { display:flex; gap:12px; justify-content:flex-end; margin-top:16px }
+
+.proficiencyDetail { display:flex; gap:12px; align-items:flex-start; background: rgba(255,255,255,0.03); padding:8px; border-radius:8px }
+.proficiencyDesc { color: rgba(255,255,255,0.9); font-size:13px; flex:1 }
+.proficiencyDeltaSmall { color: #fff; font-weight:700 }
+.motivational { margin-top:8px; padding:10px; background: rgba(0,0,0,0.12); border-radius:8px; color: #fff }
 
 @media (max-width: 768px) {
   .sessionSummaryCard { padding:12px }

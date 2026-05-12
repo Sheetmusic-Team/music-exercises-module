@@ -9,6 +9,11 @@ import { NodeSelector } from './ui/NodeSelector';
 import { ExerciseView } from './ui/ExerciseView';
 import { FeedbackView } from './ui/FeedbackView';
 import styles from './MusicModule.module.css';
+import nodesJson from '../data/nodes.json';
+
+function normalizeId(id: string) {
+  try { return String(id).toLowerCase() } catch { return String(id) }
+}
 
 type AppState = 'login' | 'mode-select' | 'node-select' | 'exercise' | 'feedback' | 'summary';
 
@@ -190,6 +195,70 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     setAppState('mode-select');
   }, []);
 
+  // Helpers: map nodes by id for descriptions
+  type NodeEntry = { id: string; name?: string; description?: string; level?: number; prerequisites?: string[] }
+  const nodesById = React.useMemo(() => {
+    const map = new Map<string, NodeEntry>()
+    try {
+      const maybe = nodesJson as { nodes?: NodeEntry[] }
+      const list = maybe?.nodes ?? []
+      list.forEach((n) => {
+        if (n?.id) map.set(n.id, n)
+      })
+    } catch {
+      // log but don't break UI
+      console.warn('Could not parse nodes.json for summary')
+    }
+    return map
+  }, [])
+
+  function getMotivationalMessage(rate?: number) {
+    if (rate == null) return ''
+    const p = Math.round(rate * 100)
+    if (p < 50) return 'Falta mejorar — sigue practicando, ¡tú puedes!'
+    if (p < 70) return 'Buen comienzo — vas por buen camino, continúa así.'
+    if (p < 90) return '¡Muy bien! Gran progreso, sigue subiendo el nivel.'
+    return '¡Excelente! Has tenido un desempeño sobresaliente.'
+  }
+
+  function getMotivationalEmoji(rate?: number) {
+    if (rate == null) return '🎵'
+    const p = Math.round(rate * 100)
+    if (p < 50) return '💪' // encourage
+    if (p < 70) return '🙂'
+    if (p < 90) return '😄'
+    return '🏆'
+  }
+
+  function normalizeId(id: string) {
+    try { return String(id).toLowerCase() } catch { return String(id) }
+  }
+
+  const [expandedNodes, setExpandedNodes] = React.useState<Record<string, boolean>>({})
+  const toggleNode = (id: string) => {
+    const k = normalizeId(id)
+    setExpandedNodes((s) => ({ ...s, [k]: !s[k] }))
+  }
+
+  function topImprovedNodes(proficiencies?: Record<string, number>, limit = 3) {
+    if (!proficiencies) return [] as Array<{ id: string; delta: number; name?: string; description?: string }>
+    const arr = Object.entries(proficiencies)
+      .map(([id, delta]) => ({ id, delta }))
+      .filter((x) => typeof x.delta === 'number' && x.delta > 0)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, limit)
+    return arr.map((x) => ({
+      ...x,
+      name: nodesById.get(x.id)?.name,
+      description: nodesById.get(x.id)?.description
+    }))
+  }
+
+  function recommendationNames(recs?: string[]) {
+    if (!recs) return [] as string[]
+    return recs.map((id) => nodesById.get(id)?.name ?? id)
+  }
+
 
 
   const handleLogout = useCallback(() => {
@@ -293,10 +362,49 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
           <div className={styles.summarySection}>
             <h3>Recompensas por nodo</h3>
             <div className={styles.nodeList}>
-              {Object.entries(sessionSummary.node_rewards || {}).map(([node, reward]) => (
-                <div key={node} className={styles.nodeItem}>
-                  <div className={styles.nodeName}>{node}</div>
-                  <div className={styles.nodeReward}>{Math.round(reward * 100) / 100}</div>
+              {Object.entries(sessionSummary.node_rewards || {}).map(([node, reward]) => {
+                const nk = normalizeId(node)
+                const meta = nodesById.get(nk)
+                const expanded = !!expandedNodes[nk]
+                return (
+                  <div key={nk} className={styles.nodeWrapper}>
+                    <button className={styles.nodeItem} onClick={() => toggleNode(nk)}>
+                      <div>
+                        <div className={styles.nodeName}>{meta?.name ?? nk}</div>
+                        <div className={styles.nodeId}>{nk}</div>
+                      </div>
+                      <div className={styles.nodeRight}>
+                        <div className={styles.nodeReward}>{Math.round(reward * 100) / 100}</div>
+                      </div>
+                    </button>
+                    {expanded && (
+                      <div className={styles.nodeExpanded}>
+                        <div className={styles.proficiencyDesc}>{meta?.description ?? 'Sin descripción'}</div>
+                        <div className={styles.nodeMeta}>Nivel: {meta?.level ?? '—'}</div>
+                        {meta?.prerequisites && meta.prerequisites.length > 0 && (
+                          <div className={styles.nodePrereq}>
+                            Requisitos: {meta.prerequisites.map((p: string) => nodesById.get(normalizeId(p))?.name ?? p).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className={styles.summarySection}>
+            <h3>Donde más mejoraste</h3>
+            <div className={styles.proficiencyList}>
+              {topImprovedNodes(sessionSummary.updated_proficiencies).length === 0 && (
+                <div className={styles.nodeItem}>No hubo mejoras netas en esta sesión.</div>
+              )}
+              {topImprovedNodes(sessionSummary.updated_proficiencies).map((n) => (
+                <div key={n.id} className={styles.proficiencyDetail}>
+                  <div className={styles.proficiencyLabel}>{n.id} — {n.name ?? ''}</div>
+                  <div className={styles.proficiencyDesc}>{n.description ?? ''}</div>
+                  <div className={styles.proficiencyDeltaSmall}>{(Math.round(n.delta * 100) / 100).toFixed(2)}</div>
                 </div>
               ))}
             </div>
@@ -331,10 +439,15 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
           <div className={styles.summarySection}>
             <h3>Siguientes recomendaciones</h3>
             <div className={styles.recommendations}>
-              {(sessionSummary.next_recommendations || []).map((r) => (
+              {recommendationNames(sessionSummary.next_recommendations).map((r) => (
                 <span key={r} className={styles.recommendationBadge}>{r}</span>
               ))}
             </div>
+          </div>
+
+          <div className={styles.summarySection}>
+            <h3>Mensaje</h3>
+            <div className={styles.motivational}>{getMotivationalEmoji(sessionSummary.success_rate)} {getMotivationalMessage(sessionSummary.success_rate)}</div>
           </div>
 
           <div className={styles.summaryActions}>
