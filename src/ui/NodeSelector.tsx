@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styles from './NodeSelector.module.css';
+import nodesJson from '../../data/nodes.json';
 
 interface Node {
   id: string;
@@ -22,99 +23,36 @@ export const NodeSelector: React.FC<NodeSelectorProps> = ({
   onBack
 }) => {
 
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Load nodes from bundled JSON. This avoids a runtime HTTP request and
+  // ensures the component works in production (and during static deploys).
+  const nodes: Node[] = (() => {
+    try {
+      const maybeNodes = (nodesJson as unknown) as { nodes?: unknown };
+      const raw = maybeNodes?.nodes ?? [];
+      return Array.isArray(raw) ? (raw as Node[]) : [];
+    } catch (e) {
+      console.error('Could not load nodes.json from bundle:', e);
+      return [];
+    }
+  })();
 
-  useEffect(() => {
-
-    console.log('NODE SELECTOR MOUNT');
-
-    fetch('/data/nodes.json')
-
-      .then((res) => {
-
-        console.log('NODES RESPONSE:', res);
-
-        return res.json();
-      })
-
-      .then((data) => {
-
-        console.log('NODES DATA:', data);
-
-        if (!data?.nodes) {
-
-          console.error('NO NODES FOUND');
-
-          setError('No se encontraron nodos');
-
-          setLoading(false);
-
-          return;
-        }
-
-        setNodes(data.nodes);
-
-        console.log(
-          'NODES LOADED:',
-          data.nodes.length
-        );
-
-        setLoading(false);
-      })
-
-      .catch((err) => {
-
-        console.error(
-          'ERROR LOADING NODES:',
-          err
-        );
-
-        setError(
-          'Error al cargar los nodos'
-        );
-
-        setLoading(false);
-      });
-
-  }, []);
-
-  if (loading) {
-
-    console.log('NODES LOADING...');
-
+  // If there are no nodes available, show a simple message and back button
+  if (!nodes || nodes.length === 0) {
+    console.warn('No nodes available to display')
     return (
       <div className={styles.container}>
-        <p>Cargando nodos...</p>
+        <p className={styles.error}>No se encontraron nodos</p>
+        <button onClick={onBack}>← Volver</button>
       </div>
-    );
-  }
-
-  if (error) {
-
-    console.error('NODE ERROR:', error);
-
-    return (
-      <div className={styles.container}>
-
-        <p className={styles.error}>
-          {error}
-        </p>
-
-        <button onClick={onBack}>
-          ← Volver
-        </button>
-
-      </div>
-    );
+    )
   }
 
   const nodesByLevel: Record<number, Node[]> = {};
 
   nodes.forEach((node) => {
 
-    console.log('NODE:', node);
+  // Optionally log nodes during development
+  // console.log('NODE:', node);
 
     if (!nodesByLevel[node.level]) {
       nodesByLevel[node.level] = [];
