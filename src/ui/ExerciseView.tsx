@@ -45,8 +45,13 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   };
 
 
-  const data = (exercise?.data || {}) as ExerciseData;
-  const hintUnlockTime = (exercise?.hintUnlockTime as number | undefined) ?? 10;
+  // Normalize incoming exercise shape: some backends wrap the real exercise inside
+  // an `exercise` field (see example payload the user reported). Prefer the
+  // nested object for display but keep top-level metadata available.
+  const src = React.useMemo(() => (((exercise as unknown) as { exercise?: Exercise })?.exercise ?? exercise), [exercise]);
+
+  const data = React.useMemo(() => ((src?.data ?? ((exercise as unknown) as { data?: ExerciseData })?.data ?? {}) as ExerciseData), [src, exercise]);
+  const hintUnlockTime = Number(src?.hintUnlockTime ?? exercise?.hintUnlockTime ?? 10);
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
 
   const alternatives = (data.alternatives as string[]) || [];
@@ -54,12 +59,12 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
   const hasNotes = Array.isArray(data.notes) && data.notes.length > 0;
 
-  // clamp difficulty to 1..4
-  const difficulty = Math.min(4, Math.max(1, Number(exercise?.difficulty ?? 1)));
+  // clamp difficulty to 1..4 (prefer nested value if present)
+  const difficulty = Math.min(4, Math.max(1, Number((src?.difficulty ?? exercise?.difficulty ?? 1))));
 
   // deterministic emoji selection based on prompt hash (pure)
   const randomEmojis = React.useMemo(() => {
-    const seedStr = String(exercise?.prompt ?? '');
+    const seedStr = String(src?.prompt ?? '');
     let hash = 0;
     for (let i = 0; i < seedStr.length; i++) {
       const cp = seedStr.codePointAt(i) ?? 0;
@@ -71,7 +76,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       out.push(emojiPool[idx]);
     }
     return out;
-  }, [exercise?.prompt]);
+  }, [src?.prompt]);
 
   // TIMER
   useEffect(() => {
@@ -82,10 +87,10 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   // VEXFLOW render
   useEffect(() => {
     if (!vexRef.current) return;
-    if (!exercise?.data) return;
+    if (!data) return;
 
     try {
-      vexRef.current.innerHTML = '';
+  vexRef.current.innerHTML = '';
       const renderer = new Renderer(vexRef.current, Renderer.Backends.SVG);
       renderer.resize(400, 160);
       const context = renderer.getContext();
@@ -112,7 +117,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       console.error('VEXFLOW ERROR', err);
     }
     // We intentionally omit data.* from deps to keep the effect simple; it re-runs when exercise changes
-  }, [exercise, data.clef, data.timeSignature, data.notes]);
+  }, [data, data.clef, data.timeSignature, data.notes]);
 
   // Early render guard
   if (!exercise) {
