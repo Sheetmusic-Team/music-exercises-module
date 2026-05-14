@@ -53,6 +53,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   }
 
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const [pendingSessionCompletedEvent, setPendingSessionCompletedEvent] = useState<MusicEvent | null>(null);
   const [uiError, setUiError] = React.useState<string | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
 
@@ -184,7 +185,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
         setUiError(String(err));
       }
     } else {
-      console.warn('[MusicModule] handleNextExercise: no controller available')
+      console.warn('[MusicModule] handleNextExercise: no controller available');
+      // If there's no controller we can't load a next exercise. Return
+      // the UI to mode selection so the user can start a new session.
+      setShowFeedback(false);
+      setFeedback(null);
+      setExercise(null);
+      setAppState('mode-select');
     }
   }, [controller, loadNextExercise]);
 
@@ -199,17 +206,19 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       setSessionSummary(result);
 
       // Enviar evento externo de sesión completada
-      // Only emit the external event if embedding page expects it. Some
-      // host pages auto-unmount the embed when receiving this event which
-      // results in the UI disappearing. Allow opting out via
-      // config.emitSessionCompleted = false.
+      // Some host pages auto-unmount the embed when receiving the
+      // 'session_completed' event which can make the UI disappear while
+      // we still want to show the session summary. To avoid that race,
+      // delay emitting the external event until the student closes the
+      // summary. Store the event payload in state and emit later.
       if (shouldEmitSessionCompleted) {
-        onEvent({
+        const ev: MusicEvent = {
           type: 'session_completed',
           sessionId: sessionId,
           totalEvents: controller.getSessionEvents().length,
           summary: result,
-        });
+        };
+        setPendingSessionCompletedEvent(ev);
       }
 
   // Keep UI on a summary view; allow the student to close session explicitly
@@ -229,10 +238,20 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   }, [controller, onEvent, sessionId, shouldEmitSessionCompleted]);
 
   const handleCloseSummary = useCallback(() => {
+    // If we previously delayed a session_completed event, emit it now.
+    if (pendingSessionCompletedEvent) {
+      try {
+        onEvent(pendingSessionCompletedEvent);
+      } catch (err) {
+        console.error('Failed emitting delayed session_completed event', err);
+      }
+      setPendingSessionCompletedEvent(null);
+    }
+
     setSessionSummary(null);
     // after closing the summary go back to mode-select (stay logged in)
     setAppState('mode-select');
-  }, []);
+  }, [onEvent, pendingSessionCompletedEvent]);
 
   // Helpers: map nodes by id for descriptions
   type NodeEntry = { id: string; name?: string; description?: string; level?: number; prerequisites?: string[] }
@@ -303,6 +322,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
 
   const handleLogout = useCallback(() => {
+    // Clear all session-related state so no stale UI remains (feedback,
+    // exercises, summaries). Then go back to login.
+    setShowFeedback(false);
+    setFeedback(null);
+    setExercise(null);
+    setSessionSummary(null);
+    setUiError(null);
     setToken(null);
     setStudentId(null);
     setStudentName(null);
