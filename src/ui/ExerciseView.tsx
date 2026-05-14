@@ -10,130 +10,174 @@ import {
   Formatter
 } from 'vexflow';
 
-// stable emoji pool at module scope
 const emojiPool = ['❓','🤔','🧐','❔','💭','🎯','🔎'];
 
-interface SubmitPayload extends Record<string, unknown> { correct: boolean; selectedIndex: number | null }
+interface SubmitPayload extends Record<string, unknown> {
+  correct: boolean;
+  selectedIndex: number | null;
+}
 
 interface ExerciseViewProps {
   exercise: Exercise | null;
-  // Accept sync or async submit handlers
   onSubmit: (answer: SubmitPayload) => void | Promise<void>;
   allowHints?: boolean;
 }
+
+type NoteData = { keys: string[]; duration: string };
+
+type ExerciseData = {
+  notes?: NoteData[];
+  timeSignature?: string;
+  clef?: string;
+  alternatives?: string[];
+  correct_index?: number;
+  [k: string]: unknown;
+};
 
 export const ExerciseView: React.FC<ExerciseViewProps> = ({
   exercise,
   onSubmit,
   allowHints
 }) => {
-  console.log('[ExerciseView] render start', { exercise });
-  // Refs & state (hooks must be unconditional)
+
   const vexRef = useRef<HTMLDivElement>(null);
+
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Normalized data shape
-  type NoteData = { keys: string[]; duration: string };
-  type ExerciseData = {
-    notes?: NoteData[];
-    timeSignature?: string;
-    clef?: string;
-    alternatives?: string[];
-    correct_index?: number;
-    [k: string]: unknown;
-  };
+  // normalize
+  const src = React.useMemo(() => {
+    return ((exercise as any)?.exercise ?? exercise);
+  }, [exercise]);
 
+  const data = React.useMemo(() => {
+    return ((src?.data ?? (exercise as any)?.data ?? {}) as ExerciseData);
+  }, [src, exercise]);
 
-  // Normalize incoming exercise shape: some backends wrap the real exercise inside
-  // an `exercise` field (see example payload the user reported). Prefer the
-  // nested object for display but keep top-level metadata available.
-  const src = React.useMemo(() => (((exercise as unknown) as { exercise?: Exercise })?.exercise ?? exercise), [exercise]);
-  console.log('[ExerciseView] normalized src computed', { src });
-
-  const data = React.useMemo(() => ((src?.data ?? ((exercise as unknown) as { data?: ExerciseData })?.data ?? {}) as ExerciseData), [src, exercise]);
-  console.log('[ExerciseView] normalized data computed', { data });
   const hintUnlockTime = Number(src?.hintUnlockTime ?? exercise?.hintUnlockTime ?? 10);
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
 
-  const alternatives = (data.alternatives as string[]) || [];
-  const correctIndex = typeof data.correct_index === 'number' ? data.correct_index : undefined;
+  const alternatives = data?.alternatives ?? [];
+  const correctIndex = typeof data?.correct_index === 'number' ? data.correct_index : undefined;
 
-  const hasNotes = Array.isArray(data.notes) && data.notes.length > 0;
-  console.log('[ExerciseView] hasNotes?', { hasNotes, notesLength: (data.notes || []).length });
+  const hasNotes = Array.isArray(data?.notes) && data.notes.length > 0;
 
-  // clamp difficulty to 1..4 (prefer nested value if present)
-  const difficulty = Math.min(4, Math.max(1, Number((src?.difficulty ?? exercise?.difficulty ?? 1))));
+  const difficulty = Math.min(
+    4,
+    Math.max(1, Number(src?.difficulty ?? exercise?.difficulty ?? 1))
+  );
 
-  // deterministic emoji selection based on prompt hash (pure)
+  // emojis deterministic
   const randomEmojis = React.useMemo(() => {
     const seedStr = String(src?.prompt ?? '');
     let hash = 0;
+
     for (let i = 0; i < seedStr.length; i++) {
       const cp = seedStr.codePointAt(i) ?? 0;
       hash = Math.trunc(hash * 31 + cp);
     }
-    const out: string[] = [];
-    for (let i = 0; i < 3; i++) {
+
+    return [0, 1, 2].map(i => {
       const idx = Math.abs((hash + i) % emojiPool.length);
-      out.push(emojiPool[idx]);
-    }
-    return out;
+      return emojiPool[idx];
+    });
   }, [src?.prompt]);
 
-  // TIMER
+  // TIMER (FIXED)
   useEffect(() => {
-    console.log('[ExerciseView] timer effect mount, hintUnlockTime=', hintUnlockTime);
-    const timer = setInterval(() => setElapsedTime((s) => s + 1), 1000);
-    return () => clearInterval(timer);
-  }, [hintUnlockTime]);
+    const timer = setInterval(() => {
+      setElapsedTime(s => s + 1);
+    }, 1000);
 
-  // VEXFLOW render
+    return () => clearInterval(timer);
+  }, []);
+
+  // VEXFLOW (STABLE VERSION)
   useEffect(() => {
-    console.log('[ExerciseView] VexFlow effect start', { vexRefExists: !!vexRef.current, data });
     if (!vexRef.current) return;
-    if (!data) return;
+    if (!Array.isArray(data?.notes) || data.notes.length === 0) return;
+    if (!data?.clef) return;
+
+    let cancelled = false;
 
     try {
-  vexRef.current.innerHTML = '';
-      console.log('[ExerciseView] cleared vexRef innerHTML');
-      const renderer = new Renderer(vexRef.current, Renderer.Backends.SVG);
-      console.log('[ExerciseView] created Vexflow renderer');
+      vexRef.current.innerHTML = '';
+
+      const renderer = new Renderer(
+        vexRef.current,
+        Renderer.Backends.SVG
+      );
+
       renderer.resize(400, 160);
+
       const context = renderer.getContext();
       context.setFont('Arial', 10, '').setBackgroundFillStyle('#fff');
 
       const stave = new Stave(10, 40, 380);
+
       if (data.clef) stave.addClef(data.clef);
       if (data.timeSignature) stave.addTimeSignature(data.timeSignature);
+
       stave.setContext(context).draw();
 
-  const notesData = data.notes || [];
-      console.log('[ExerciseView] notesData', { notesData });
-      if (!notesData.length) return;
+      const notesData = data.notes;
 
-      const notes = notesData.map((n) => new StaveNote({ keys: n.keys, duration: n.duration, clef: data.clef || 'treble' }));
-      console.log('[ExerciseView] created Vexflow notes', { notesCount: notes.length });
+      const notes = notesData
+        .map(n => {
+          if (!n?.keys || !n?.duration) return null;
 
-      const durationValues: Record<string, number> = { w:4,h:2,q:1,'8':0.5,'16':0.25,'32':0.125, wr:4, hr:2, qr:1, '8r':0.5, '16r':0.25, '32r':0.125 };
-      const totalBeats = notesData.reduce((s, n) => s + (durationValues[n.duration] || 1), 0);
+          return new StaveNote({
+            keys: n.keys,
+            duration: n.duration,
+            clef: data.clef || 'treble'
+          });
+        })
+        .filter(Boolean);
 
-      const voice = new Voice({ numBeats: Math.max(totalBeats, 1), beatValue: 4 });
+      if (!notes.length) return;
+
+      const durationValues: Record<string, number> = {
+        w: 4, h: 2, q: 1,
+        '8': 0.5, '16': 0.25, '32': 0.125,
+        wr: 4, hr: 2, qr: 1,
+        '8r': 0.5, '16r': 0.25, '32r': 0.125
+      };
+
+      const totalBeats = notesData.reduce((s, n) => {
+        return s + (durationValues[n.duration] || 1);
+      }, 0);
+
+      const voice = new Voice({
+        numBeats: Math.max(totalBeats, 1),
+        beatValue: 4
+      });
+
       voice.addTickables(notes);
-      new Formatter().joinVoices([voice]).format([voice], 350);
-      voice.draw(context, stave);
-      console.log('[ExerciseView] voice drawn');
+
+      new Formatter()
+        .joinVoices([voice])
+        .format([voice], 350);
+
+      if (!cancelled) {
+        voice.draw(context, stave);
+      }
+
     } catch (err) {
       console.error('VEXFLOW ERROR', err);
     }
-    console.log('[ExerciseView] VexFlow effect end');
-    // We intentionally omit data.* from deps to keep the effect simple; it re-runs when exercise changes
-  }, [data, data.clef, data.timeSignature, data.notes]);
 
-  // Early render guard
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    data?.clef,
+    data?.timeSignature,
+    JSON.stringify(data?.notes)
+  ]);
+
   if (!exercise) {
-    console.log('[ExerciseView] no exercise prop, showing loading');
     return (
       <div className={styles.container}>
         <p>Cargando ejercicio...</p>
@@ -141,35 +185,51 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     );
   }
 
-  // Submit handler uses selectedIndex + alternatives
   function handleSubmit() {
     let correct = true;
+
     if (alternatives && alternatives.length > 0) {
-      if (typeof correctIndex === 'number') correct = selectedIndex === correctIndex;
-      else correct = selectedIndex !== null;
+      if (typeof correctIndex === 'number') {
+        correct = selectedIndex === correctIndex;
+      } else {
+        correct = selectedIndex !== null;
+      }
     }
+
     try {
-      console.info('[ExerciseView] submit', { correct, selectedIndex })
-      console.log('[ExerciseView] calling onSubmit handler', { correct, selectedIndex });
       const ret = onSubmit({ correct, selectedIndex });
-      Promise.resolve(ret).catch((e) => console.error('[ExerciseView] onSubmit async error', e));
+
+      Promise.resolve(ret).catch(e =>
+        console.error('[ExerciseView] onSubmit async error', e)
+      );
+
     } catch (e) {
-      console.error('[ExerciseView] onSubmit error', e)
+      console.error('[ExerciseView] onSubmit error', e);
     }
   }
 
+  const displayType = String(src?.type ?? exercise?.type ?? 'teorico');
+  const displayPrompt = String(src?.prompt ?? exercise?.prompt ?? '');
+
   return (
     <div className={styles.container}>
+
       <div className={styles.header}>
         <h2 className={styles.title}>
-          <span className={styles.badge}>{exercise.type === 'rhythm' ? '🎵' : '🎶'}</span>
-          {exercise.type.charAt(0).toUpperCase() + exercise.type.slice(1)}
+          <span className={styles.badge}>
+            {displayType === 'rhythm' ? '🎵' : '🎶'}
+          </span>
+
+          {displayType.charAt(0).toUpperCase() + displayType.slice(1)}
         </h2>
-        <p className={styles.prompt}>{exercise.prompt}</p>
+
+        <p className={styles.prompt}>{displayPrompt}</p>
       </div>
 
       <div className={styles.scoreIndicator}>
-        <span className={styles.difficulty}>Dificultad: {difficulty}/4</span>
+        <span className={styles.difficulty}>
+          Dificultad: {difficulty}/4
+        </span>
       </div>
 
       {hasNotes ? (
@@ -177,51 +237,63 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
           <div ref={vexRef} className={styles.staff} />
         </div>
       ) : (
-        <div className={styles.placeholder} role="img" aria-label="Ejercicio sin notación">
+        <div className={styles.placeholder}>
           <div className={styles.placeholderEmojis}>
             {randomEmojis.map((e, i) => (
-              <span key={`${e}-${i}`} className={styles.placeholderEmoji}>{e}</span>
+              <span key={i}>{e}</span>
             ))}
           </div>
         </div>
       )}
 
-      {alternatives && alternatives.length > 0 && (
+      {alternatives.length > 0 && (
         <div className={styles.choices}>
           {alternatives.map((alt, i) => (
             <button
-              key={`${alt}-${i}`}
+              key={i}
               className={`${styles.choiceBtn} ${selectedIndex === i ? styles.selected : ''}`}
               onClick={() => setSelectedIndex(i)}
-              aria-pressed={selectedIndex === i}
             >
-              <span className={styles.choiceLabel}>{String.fromCodePoint(65 + i)}.</span>
-              <span className={styles.choiceText}>{alt}</span>
+              <span>{String.fromCodePoint(65 + i)}.</span>
+              <span>{alt}</span>
             </button>
           ))}
         </div>
       )}
 
       <div className={styles.actions}>
-        <button className={styles.submitBtn} onClick={handleSubmit} disabled={alternatives.length > 0 ? selectedIndex === null : false}>
+        <button
+          className={styles.submitBtn}
+          onClick={handleSubmit}
+          disabled={alternatives.length > 0 ? selectedIndex === null : false}
+        >
           ✓ Enviar respuesta
         </button>
 
-        {allowHints && exercise.hint && (
+        {allowHints && exercise?.hint && (
           <button
-            className={`${styles.hintBtn} ${isHintUnlocked ? '' : styles.disabled} ${showHint ? styles.active : ''}`}
-            onClick={() => { if (isHintUnlocked) setShowHint(!showHint); }}
+            className={styles.hintBtn}
+            onClick={() => {
+              if (isHintUnlocked) setShowHint(!showHint);
+            }}
             disabled={!isHintUnlocked}
           >
             {showHint ? '✕ Ocultar' : '💡 ¿Cómo resolver?'}
-            {!isHintUnlocked && <span className={styles.timer}>{hintUnlockTime - elapsedTime}s</span>}
+            {!isHintUnlocked && (
+              <span>
+                {hintUnlockTime - elapsedTime}s
+              </span>
+            )}
           </button>
         )}
       </div>
 
-      {showHint && exercise.hint && (
-        <div className={styles.hintBox}><p>{exercise.hint}</p></div>
+      {showHint && exercise?.hint && (
+        <div className={styles.hintBox}>
+          <p>{exercise.hint}</p>
+        </div>
       )}
+
     </div>
   );
 };
