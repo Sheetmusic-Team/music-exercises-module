@@ -27,6 +27,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   onSubmit,
   allowHints
 }) => {
+  console.log('[ExerciseView] render start', { exercise });
   // Refs & state (hooks must be unconditional)
   const vexRef = useRef<HTMLDivElement>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -49,8 +50,10 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   // an `exercise` field (see example payload the user reported). Prefer the
   // nested object for display but keep top-level metadata available.
   const src = React.useMemo(() => (((exercise as unknown) as { exercise?: Exercise })?.exercise ?? exercise), [exercise]);
+  console.log('[ExerciseView] normalized src computed', { src });
 
   const data = React.useMemo(() => ((src?.data ?? ((exercise as unknown) as { data?: ExerciseData })?.data ?? {}) as ExerciseData), [src, exercise]);
+  console.log('[ExerciseView] normalized data computed', { data });
   const hintUnlockTime = Number(src?.hintUnlockTime ?? exercise?.hintUnlockTime ?? 10);
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
 
@@ -58,6 +61,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   const correctIndex = typeof data.correct_index === 'number' ? data.correct_index : undefined;
 
   const hasNotes = Array.isArray(data.notes) && data.notes.length > 0;
+  console.log('[ExerciseView] hasNotes?', { hasNotes, notesLength: (data.notes || []).length });
 
   // clamp difficulty to 1..4 (prefer nested value if present)
   const difficulty = Math.min(4, Math.max(1, Number((src?.difficulty ?? exercise?.difficulty ?? 1))));
@@ -80,18 +84,22 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
   // TIMER
   useEffect(() => {
+    console.log('[ExerciseView] timer effect mount, hintUnlockTime=', hintUnlockTime);
     const timer = setInterval(() => setElapsedTime((s) => s + 1), 1000);
     return () => clearInterval(timer);
   }, [hintUnlockTime]);
 
   // VEXFLOW render
   useEffect(() => {
+    console.log('[ExerciseView] VexFlow effect start', { vexRefExists: !!vexRef.current, data });
     if (!vexRef.current) return;
     if (!data) return;
 
     try {
   vexRef.current.innerHTML = '';
+      console.log('[ExerciseView] cleared vexRef innerHTML');
       const renderer = new Renderer(vexRef.current, Renderer.Backends.SVG);
+      console.log('[ExerciseView] created Vexflow renderer');
       renderer.resize(400, 160);
       const context = renderer.getContext();
       context.setFont('Arial', 10, '').setBackgroundFillStyle('#fff');
@@ -102,9 +110,11 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       stave.setContext(context).draw();
 
   const notesData = data.notes || [];
+      console.log('[ExerciseView] notesData', { notesData });
       if (!notesData.length) return;
 
       const notes = notesData.map((n) => new StaveNote({ keys: n.keys, duration: n.duration, clef: data.clef || 'treble' }));
+      console.log('[ExerciseView] created Vexflow notes', { notesCount: notes.length });
 
       const durationValues: Record<string, number> = { w:4,h:2,q:1,'8':0.5,'16':0.25,'32':0.125, wr:4, hr:2, qr:1, '8r':0.5, '16r':0.25, '32r':0.125 };
       const totalBeats = notesData.reduce((s, n) => s + (durationValues[n.duration] || 1), 0);
@@ -113,14 +123,17 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
       voice.addTickables(notes);
       new Formatter().joinVoices([voice]).format([voice], 350);
       voice.draw(context, stave);
+      console.log('[ExerciseView] voice drawn');
     } catch (err) {
       console.error('VEXFLOW ERROR', err);
     }
+    console.log('[ExerciseView] VexFlow effect end');
     // We intentionally omit data.* from deps to keep the effect simple; it re-runs when exercise changes
   }, [data, data.clef, data.timeSignature, data.notes]);
 
   // Early render guard
   if (!exercise) {
+    console.log('[ExerciseView] no exercise prop, showing loading');
     return (
       <div className={styles.container}>
         <p>Cargando ejercicio...</p>
@@ -137,6 +150,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     }
     try {
       console.info('[ExerciseView] submit', { correct, selectedIndex })
+      console.log('[ExerciseView] calling onSubmit handler', { correct, selectedIndex });
       const ret = onSubmit({ correct, selectedIndex });
       Promise.resolve(ret).catch((e) => console.error('[ExerciseView] onSubmit async error', e));
     } catch (e) {
