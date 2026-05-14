@@ -1,5 +1,6 @@
 // Componente principal embebible
 import React, { useState, useCallback } from 'react';
+import ErrorBoundary from './ui/ErrorBoundary';
 import { FlowController } from './core/flowController';
 import type { MusicEvent } from './types/events';
 import type { Exercise, Feedback } from './types/exercise';
@@ -348,11 +349,17 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       exercise &&
       !showFeedback && (
         <div className={styles.exerciseContainer}>
-          <ExerciseView
-            exercise={exercise}
-            onSubmit={handleSubmit}
-            allowHints={config?.allowHints}
-          />
+          <React.Suspense fallback={<div>Cargando componente...</div>}>
+            <ErrorBoundary onError={(err, info) => {
+              console.error('[MusicModule] ErrorBoundary caught render error for exercise', { err, info, exercise });
+            }}>
+              <ExerciseView
+                exercise={exercise}
+                onSubmit={handleSubmit}
+                allowHints={config?.allowHints}
+              />
+            </ErrorBoundary>
+          </React.Suspense>
 
           <button
             onClick={handleEndSession}
