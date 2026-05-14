@@ -46,20 +46,25 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   const [showHint, setShowHint] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // normalize
-  const src = React.useMemo(() => {
-    return ((exercise as any)?.exercise ?? exercise);
-  }, [exercise]);
+  // ✅ stable source (NO double normalization)
+  const src = exercise;
 
-  const data = React.useMemo(() => {
-    return ((src?.data ?? (exercise as any)?.data ?? {}) as ExerciseData);
-  }, [src, exercise]);
+  // ✅ FIX: stable data (IMPORTANT)
+  const data: ExerciseData | null = React.useMemo(() => {
+    const base = exercise?.data;
+
+    if (!base || typeof base !== 'object') return null;
+
+    return base as ExerciseData;
+  }, [exercise?.id]);
 
   const hintUnlockTime = Number(src?.hintUnlockTime ?? exercise?.hintUnlockTime ?? 10);
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
 
   const alternatives = data?.alternatives ?? [];
-  const correctIndex = typeof data?.correct_index === 'number' ? data.correct_index : undefined;
+  const correctIndex = typeof data?.correct_index === 'number'
+    ? data.correct_index
+    : undefined;
 
   const hasNotes = Array.isArray(data?.notes) && data.notes.length > 0;
 
@@ -68,7 +73,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     Math.max(1, Number(src?.difficulty ?? exercise?.difficulty ?? 1))
   );
 
-  // emojis deterministic
+  // 🎯 deterministic emojis
   const randomEmojis = React.useMemo(() => {
     const seedStr = String(src?.prompt ?? '');
     let hash = 0;
@@ -84,7 +89,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     });
   }, [src?.prompt]);
 
-  // TIMER (FIXED)
+  // ⏱️ TIMER (stable)
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedTime(s => s + 1);
@@ -93,11 +98,12 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // VEXFLOW (STABLE VERSION)
+  // 🎼 VEXFLOW (stable & safe)
   useEffect(() => {
     if (!vexRef.current) return;
-    if (!Array.isArray(data?.notes) || data.notes.length === 0) return;
-    if (!data?.clef) return;
+    if (!data) return;
+    if (!Array.isArray(data.notes) || data.notes.length === 0) return;
+    if (!data.clef) return;
 
     let cancelled = false;
 
@@ -174,9 +180,10 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   }, [
     data?.clef,
     data?.timeSignature,
-    JSON.stringify(data?.notes)
+    data?.notes
   ]);
 
+  // ⛔ guard
   if (!exercise) {
     return (
       <div className={styles.container}>
@@ -188,7 +195,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
   function handleSubmit() {
     let correct = true;
 
-    if (alternatives && alternatives.length > 0) {
+    if (alternatives.length > 0) {
       if (typeof correctIndex === 'number') {
         correct = selectedIndex === correctIndex;
       } else {
