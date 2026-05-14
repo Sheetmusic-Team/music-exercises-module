@@ -21,6 +21,9 @@ type AppState = 'login' | 'mode-select' | 'node-select' | 'exercise' | 'feedback
 interface MusicModuleConfig {
   mode?: 'practice' | 'test';
   allowHints?: boolean;
+  // If false, do not emit the external 'session_completed' event which some
+  // hosts use to unmount the embed. Default: true
+  emitSessionCompleted?: boolean;
 }
 
 interface MusicModuleProps {
@@ -52,6 +55,11 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [uiError, setUiError] = React.useState<string | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
+
+  // Derived config flags (keeps dependency lists simple and stable)
+  const shouldEmitSessionCompleted = React.useMemo(() => {
+    return config?.emitSessionCompleted !== false;
+  }, [config?.emitSessionCompleted]);
 
   // Manejar login
   const handleLogin = useCallback((accessToken: string, id: string, name: string) => {
@@ -191,12 +199,18 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       setSessionSummary(result);
 
       // Enviar evento externo de sesión completada
-      onEvent({
-        type: 'session_completed',
-        sessionId: sessionId,
-        totalEvents: controller.getSessionEvents().length,
-        summary: result,
-      });
+      // Only emit the external event if embedding page expects it. Some
+      // host pages auto-unmount the embed when receiving this event which
+      // results in the UI disappearing. Allow opting out via
+      // config.emitSessionCompleted = false.
+      if (shouldEmitSessionCompleted) {
+        onEvent({
+          type: 'session_completed',
+          sessionId: sessionId,
+          totalEvents: controller.getSessionEvents().length,
+          summary: result,
+        });
+      }
 
   // Keep UI on a summary view; allow the student to close session explicitly
   setAppState('summary');
@@ -212,7 +226,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     } finally {
       setLoading(false);
     }
-  }, [controller, onEvent, sessionId]);
+  }, [controller, onEvent, sessionId, shouldEmitSessionCompleted]);
 
   const handleCloseSummary = useCallback(() => {
     setSessionSummary(null);

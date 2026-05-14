@@ -103,12 +103,13 @@ export class FlowController {
         this.sessionEvents
       );
 
-      this.onEvent({
-        type: 'session_completed',
-        sessionId: this.sessionId,
-        totalEvents: this.sessionEvents.length,
-        summary: result,
-      });
+      // Return the result to the caller. Do NOT automatically emit a
+      // 'session_completed' event from the controller: the host UI may
+      // decide how and when to react to session completion. Emitting the
+      // event here caused duplicate notifications (the caller also
+      // emitted the event) and in some embeddings the host removed the
+      // embed when seeing this event. Keep the controller focused on
+      // orchestration and let the caller emit external events.
 
       return result;
     } catch (error) {
