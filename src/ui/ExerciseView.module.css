@@ -1,16 +1,20 @@
 .container {
+  --accent-1: #7a1bd8;
+  --accent-2: #5a0f9f;
+  --muted: #6b6375;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f6f7fb 100%);
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(20, 20, 40, 0.06);
+  padding: 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f7ff 100%);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(30, 20, 60, 0.06);
   width: 100%;
-  max-width: 920px;
+  max-width: 980px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   min-height: 360px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .header {
@@ -18,37 +22,40 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(75,29,96,0.08);
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(90,15,159,0.06);
 }
 
 .title {
   font-size: 20px;
-  font-weight: 700;
-  color: #2b2b2b;
+  font-weight: 800;
+  color: #0f1724;
 }
 
 .timer {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-left: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  background: rgba(75,29,96,0.36);
-  padding: 4px 8px;
-  border-radius: 6px;
-  color: #ffffff;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(90,15,159,0.12);
 }
 
 .staffContainer {
   display: flex;
   justify-content: center;
-  padding: 18px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e9e9ee;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff, #fbfcff);
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,36,0.04);
+  box-shadow: 0 6px 18px rgba(20, 20, 40, 0.04);
   overflow-x: auto;
-  min-height: 140px;
+  min-height: 160px;
 }
 
 .staff {
@@ -69,70 +76,73 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 24px;
-  background: linear-gradient(180deg,#fff 0%, #fafbff 100%);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 6px rgba(0,0,0,0.02);
-  border: 1px solid #f0f0f4;
+  padding: 28px;
+  background: linear-gradient(180deg,#fff 0%, #fbfcff 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(20,20,40,0.04);
+  border: 1px solid #f0f2fb;
   min-height: 160px;
 }
 
 .placeholderEmoji {
-  font-size: 40px;
+  font-size: 44px;
   line-height: 1;
   display: inline-block;
-  padding: 6px;
-  background: linear-gradient(90deg, rgba(75,29,96,0.06), rgba(75,29,96,0.02));
-  border-radius: 8px;
+  padding: 8px;
+  background: linear-gradient(90deg, rgba(122,27,216,0.08), rgba(90,15,159,0.02));
+  border-radius: 10px;
 }
 
 .prompt {
   font-size: 16px;
-  color: #6b6375;
+  color: var(--muted);
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
 }
 
 .choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
   margin-top: 12px;
 }
 
 .choiceBtn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #ffffff;
-  border: 2px solid #e6e6ea;
-  border-radius: 10px;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid rgba(15,23,36,0.06);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   text-align: left;
 }
-
-.choiceBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+.choiceBtn:hover,
+.choiceBtn:focus {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 30px rgba(20,20,40,0.06);
+  border-color: rgba(122,27,216,0.18);
 }
+.choiceBtn:focus-visible { outline: 3px solid rgba(122,27,216,0.12); border-color: var(--accent-1); }
 
 .choiceLabel {
   font-weight: 800;
-  color: #4b1d73;
-  min-width: 26px;
+  color: var(--accent-1);
+  min-width: 28px;
 }
 
 .choiceText {
-  color: #2b2b2b;
-  font-weight: 600;
+  color: #0f1724;
+  font-weight: 700;
 }
 
 .choiceBtn.selected {
-  border-color: #4b1d73;
-  background: linear-gradient(90deg, rgba(75,29,96,0.06), rgba(75,29,96,0.02));
+  border-color: var(--accent-1);
+  background: linear-gradient(90deg, rgba(122,27,216,0.06), rgba(90,15,159,0.02));
+  box-shadow: 0 12px 24px rgba(90,15,159,0.06);
 }
 
 .actions {
@@ -143,39 +153,42 @@
 }
 
 .submitBtn {
-  padding: 12px 26px;
+  padding: 12px 28px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
-  background: linear-gradient(135deg, #4b1d73 0%, #3a125a 100%);
+  background: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-2) 100%);
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
+  box-shadow: 0 12px 30px rgba(122,27,216,0.18);
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms;
 }
+.submitBtn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(122,27,216,0.2); }
 
 .hintBtn {
-  padding: 12px 20px;
+  padding: 10px 18px;
   font-size: 14px;
-  font-weight: 600;
-  color: #0b0b0b;
-  background: #ffffff;
-  border: 2px solid #4b1d73;
-  border-radius: 8px;
+  font-weight: 700;
+  color: var(--accent-1);
+  background: transparent;
+  border: 2px solid rgba(122,27,216,0.12);
+  border-radius: 10px;
   cursor: pointer;
 }
 
 .hintBtn.disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #f0f0f0;
-  color: #6b6b6b;
+  background: #fafafa;
+  color: #9b9b9b;
 }
 
 .hintBox {
-  padding: 16px 20px;
-  background: rgba(75,29,96,0.06);
-  border-left: 4px solid #4b1d73;
-  border-radius: 8px;
+  padding: 16px 18px;
+  background: linear-gradient(90deg, rgba(122,27,216,0.04), rgba(59,123,216,0.02));
+  border-left: 4px solid var(--accent-1);
+  border-radius: 10px;
   margin-top: 12px;
 }
 
@@ -185,12 +198,12 @@
     gap: 16px;
   }
 
-  .submitBtn,
-  .hintBtn {
-    width: 100%;
+  .choices {
+    grid-template-columns: 1fr;
   }
 
-  .staffContainer {
-    padding: 12px;
-  }
+  .submitBtn,
+  .hintBtn { width: 100%; }
+
+  .staffContainer { padding: 12px; }
 }
