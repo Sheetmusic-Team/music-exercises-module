@@ -9,11 +9,21 @@ export const authClient = {
       body: JSON.stringify({ email, password }),
     });
 
-    if (!response.ok) {
-      throw new Error('Login failed');
+    // Try to parse response body for better error messages
+    const text = await response.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
     }
 
-    return response.json();
+    if (!response.ok) {
+      const msg = data && typeof data === 'object' ? (data.error || data.message || JSON.stringify(data)) : (String(data) || 'Login failed');
+      throw new Error(msg);
+    }
+
+    return data;
   },
 
   async signup(email: string, password: string, name: string) {

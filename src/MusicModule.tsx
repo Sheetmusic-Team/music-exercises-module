@@ -64,11 +64,25 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   // Manejar login
   const handleLogin = useCallback((accessToken: string, id: string, name: string) => {
+    console.info('[MusicModule] handleLogin called', { accessToken, id, name });
     setToken(accessToken);
     setStudentId(id);
     setStudentName(name);
     setAppState('mode-select');
   }, []);
+
+  // Diagnostic: log state transitions to help debug login spinner
+  React.useEffect(() => {
+    console.info('[MusicModule] state snapshot', {
+      appState,
+      token,
+      studentId,
+      studentName,
+      controller: !!controller,
+      exerciseLoaded: !!exercise,
+      loading,
+    });
+  }, [appState, token, studentId, studentName, controller, exercise, loading]);
 
   // Cargar siguiente ejercicio
   const loadNextExercise = useCallback(async (ctrl: FlowController) => {
@@ -194,6 +208,23 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       setAppState('mode-select');
     }
   }, [controller, loadNextExercise]);
+
+  // Cerrar la vista de feedback sin provocar efectos colaterales
+  const handleCloseFeedback = useCallback(() => {
+    console.info('[MusicModule] handleCloseFeedback: hiding feedback');
+    setShowFeedback(false);
+    // keep feedback in state until next exercise is loaded to avoid flash
+    // ensure we stay on 'exercise' state
+    setAppState('exercise');
+
+    // If there is no current exercise but we have a controller, try to load one
+    if (!exercise && controller) {
+      loadNextExercise(controller).catch((e) => {
+        console.error('[MusicModule] handleCloseFeedback: reload failed', e);
+        setUiError(String(e));
+      });
+    }
+  }, [controller, exercise, loadNextExercise]);
 
   // Finalizar sesión
   const handleEndSession = useCallback(async () => {
@@ -341,6 +372,32 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     setAppState('mode-select');
   }, []);
 
+  // Auto-recover: if we're supposed to be in 'exercise' but there's no
+  // exercise loaded while we have a controller, try to load one.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (appState === 'exercise' && !exercise && controller && !loading) {
+      console.info('[MusicModule] auto-recover: loading missing exercise');
+
+      // Defer the work to the next tick so we don't call setState
+      // synchronously inside the effect body (which can trigger
+      // cascading renders). Using setTimeout is a minimal, safe deferral.
+      const id = setTimeout(() => {
+        loadNextExercise(controller).catch((e) => {
+          if (cancelled) return;
+          console.error('[MusicModule] auto-recover failed', e);
+          setUiError(String(e));
+        });
+      }, 0);
+
+      return () => {
+        cancelled = true;
+        clearTimeout(id);
+      };
+    }
+    return () => { cancelled = true; };
+  }, [appState, exercise, controller, loading, loadNextExercise]);
+
   return (
   <div className={styles.module}>
 
@@ -361,12 +418,17 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       <LoginView onLoginSuccess={handleLogin} />
     )}
 
-    {appState === 'mode-select' && studentName && (
+    {appState === 'mode-select' && (token && (studentName || token)) && (
       <ModeSelector
         onSelectMode={handleModeSelect}
         onLogout={handleLogout}
         authToken={token}
-        studentName={studentName}
+        // Prefer explicit studentName, else try to read from localStorage (if available)
+        studentName={
+          studentName ?? (typeof globalThis !== 'undefined' && globalThis.localStorage
+            ? (globalThis.localStorage.getItem('name') || globalThis.localStorage.getItem('studentId') || '')
+            : '')
+        }
       />
     )}
 
@@ -540,32 +602,37 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       )}
 
     {appState === 'exercise' &&
-      showFeedback &&
       feedback && (
         <div className={styles.feedbackContainer}>
 
-          <FeedbackView feedback={feedback} />
+          <FeedbackView
+            feedback={feedback}
+            isOpen={showFeedback}
+            onClose={handleCloseFeedback}
+          />
 
-          <div className={styles.feedbackActions}>
+          {showFeedback && (
+            <div className={styles.feedbackActions}>
 
-            <button
-              className={styles.nextBtn}
-              onClick={handleNextExercise}
-              disabled={loading}
-            >
-              {loading
-                ? '⏳ Cargando...'
-                : '➜ Siguiente ejercicio'}
-            </button>
+              <button
+                className={styles.nextBtn}
+                onClick={handleNextExercise}
+                disabled={loading}
+              >
+                {loading
+                  ? '⏳ Cargando...'
+                  : '➜ Siguiente ejercicio'}
+              </button>
 
-            <button
-              onClick={handleEndSession}
-              className={styles.endSessionBtn}
-            >
-              Terminar Sesión
-            </button>
+              <button
+                onClick={handleEndSession}
+                className={styles.endSessionBtn}
+              >
+                Terminar Sesión
+              </button>
 
-          </div>
+            </div>
+          )}
 
         </div>
       )}

@@ -6,10 +6,14 @@ import styles from './FeedbackView.module.css';
 
 interface FeedbackViewProps {
   feedback: Feedback | null;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const FeedbackView: React.FC<FeedbackViewProps> = ({
-  feedback
+  feedback,
+  isOpen = true,
+  onClose
 }) => {
 
   // ========================================
@@ -22,14 +26,15 @@ export const FeedbackView: React.FC<FeedbackViewProps> = ({
     console.log('===================================');
   }, [feedback]);
 
+  // If the parent closed the view, hide it (do this after hooks)
+  if (!isOpen) return null;
+
   // ========================================
   // PROTECCIÓN
   // ========================================
 
   if (!feedback) {
-
     console.error('FEEDBACK ES NULL');
-
     return (
       <div className={styles.container}>
         <h2>No hay feedback</h2>
@@ -56,22 +61,35 @@ export const FeedbackView: React.FC<FeedbackViewProps> = ({
   // RENDER
   // ========================================
 
+  // Prepare emoji without nested ternary for readability
+  let emoji = '💪';
+  if (score >= 50) emoji = '👍';
+  if (score >= 80) emoji = '🎉';
+
   return (
-    <div className={styles.container}>
+    <section className={styles.container} aria-label="Feedback"> 
 
       <div className={styles.header}>
 
-        <h3 className={styles.title}>
+        <div className={styles.headerLeft}>
+          <h3 className={styles.title}>
+            {emoji} Feedback
+          </h3>
+          <p className={styles.subtitle}>Resultado del ejercicio</p>
+        </div>
 
-          {score >= 80
-            ? '🎉'
-            : score >= 50
-              ? '👍'
-              : '💪'}
-
-          {' '}Feedback
-
-        </h3>
+        <div className={styles.headerRight}>
+          <button
+            type="button"
+            className={styles.closeBtn}
+            aria-label="Volver atrás"
+            onClick={() => {
+              if (onClose) onClose();
+            }}
+          >
+            ← Volver
+          </button>
+        </div>
 
       </div>
 
@@ -111,46 +129,36 @@ export const FeedbackView: React.FC<FeedbackViewProps> = ({
       {/* ======================================== */}
 
       {message && (
-
         <div className={styles.message}>
-
           <p>{message}</p>
-
         </div>
-
       )}
 
       {/* ======================================== */}
       {/* DETAILS */}
       {/* ======================================== */}
 
+
       {details && (
-
         <div className={styles.details}>
-
           {details.correctNotes !== undefined && (
-
             <div className={styles.detailItem}>
-
-              <span className={styles.label}>
-                Notas correctas:
-              </span>
-
-              <span className={styles.value}>
-
-                {details.correctNotes}/
-                {details.totalNotes}
-
-              </span>
-
+              <span className={styles.label}>Notas correctas:</span>
+              <span className={styles.value}>{details.correctNotes}/{details.totalNotes}</span>
             </div>
-
           )}
-
         </div>
-
       )}
 
-    </div>
+      <div className={styles.feedbackFooter}>
+        <div className={styles.footerLeft}>
+          <small className={styles.hint}>¿Quieres repetir este ejercicio? Pulsa Siguiente para continuar la práctica.</small>
+        </div>
+        <div className={styles.footerRight}>
+          {/* The parent (MusicModule) renders the next / end buttons; keep footer minimal for context */}
+        </div>
+      </div>
+
+    </section>
   );
 };

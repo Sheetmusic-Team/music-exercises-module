@@ -1,6 +1,4 @@
-// ui/LoginView.tsx
-
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { authClient } from '../services/auth/authClient';
 import styles from './LoginView.module.css';
 
@@ -13,258 +11,138 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
-  onLoginSuccess
+  onLoginSuccess,
 }) => {
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (
-    e: React.FormEvent
-  ) => {
+  const mounted = useRef(true);
 
-    e.preventDefault();
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
+  async function doLogin(
+    emailVal: string,
+    passwordVal: string
+  ) {
     setLoading(true);
-    setError('');
+    setError(null);
 
     try {
+      const response = await authClient.login(emailVal, passwordVal);
 
-      console.log('ANTES LOGIN');
+      console.info('[LoginView] login response:', response);
 
-      const response =
-        await authClient.login(email, password);
+      const token = response?.accessToken;
+      const studentId = response?.studentId || response?.student?.id || response?.user?.id;
+      let studentName = response?.name || response?.student?.name || response?.user?.email || '';
 
-      console.log(
-        'LOGIN RESPONSE COMPLETA:',
-        response
-      );
-
-      // ====================================
-      // VALIDACIONES
-      // ====================================
-
-      if (!response.accessToken) {
-        throw new Error(
-          'No accessToken recibido'
-        );
+      if (!token || !studentId) {
+        throw new Error('Respuesta de autenticaci\u00f3n incompleta (token o studentId faltante)');
       }
 
-      // Si backend devuelve student anidado
-      const studentId =
-        response.studentId ||
-        response.student?.id;
+      if (!studentName) studentName = String(studentId);
 
-      const studentName =
-        response.name ||
-        response.student?.name;
+      authClient.setAuth(token, String(studentId), studentName);
 
-      console.log('STUDENT ID:', studentId);
-      console.log('STUDENT NAME:', studentName);
-
-      if (!studentId) {
-        throw new Error(
-          'No studentId recibido'
-        );
-      }
-
-      if (!studentName) {
-        throw new Error(
-          'No studentName recibido'
-        );
-      }
-
-      // ====================================
-      // SAVE AUTH
-      // ====================================
-
-      authClient.setAuth(
-        response.accessToken,
-        studentId,
-        studentName
-      );
-
-      console.log('AUTH SAVED');
-
-      // ====================================
-      // CALLBACK
-      // ====================================
-
-      onLoginSuccess(
-        response.accessToken,
-        studentId,
-        studentName
-      );
-
-      console.log(
-        'LOGIN SUCCESS CALLBACK'
-      );
-
+      if (mounted.current) onLoginSuccess(token, String(studentId), studentName);
     } catch (err) {
-
-      console.error(
-        'LOGIN ERROR:',
-        err
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Error al iniciar sesión'
-      );
-
+      console.error('[LoginView] login error:', err);
+      if (!mounted.current) return;
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
-
-      setLoading(false);
-
+      // Always clear loading state to avoid permanent spinner
+      try {
+        if (mounted.current) setLoading(false);
+      } catch (e) {
+        // ignore
+      }
     }
-  };
+  }
 
-  const handleSignUp = async (
-    e: React.FormEvent
-  ) => {
-
-    e.preventDefault();
-
+  async function doSignUp(
+    emailVal: string,
+    passwordVal: string,
+    nameVal: string
+  ) {
     setLoading(true);
-    setError('');
+    setError(null);
 
     try {
-
-      console.log('CREANDO CUENTA');
-
       await authClient.signup(
-        email,
-        password,
-        name
+        emailVal,
+        passwordVal,
+        nameVal
       );
 
-      console.log('CUENTA CREADA');
-
-      const loginResponse =
-        await authClient.login(
-          email,
-          password
-        );
-
-      console.log(
-        'LOGIN RESPONSE:',
-        loginResponse
-      );
-
-      const studentId =
-        loginResponse.studentId ||
-        loginResponse.student?.id;
-
-      const studentName =
-        loginResponse.name ||
-        loginResponse.student?.name;
-
-      if (!studentId || !studentName) {
-        throw new Error(
-          'Datos incompletos del usuario'
-        );
-      }
-
-      authClient.setAuth(
-        loginResponse.accessToken,
-        studentId,
-        studentName
-      );
-
-      onLoginSuccess(
-        loginResponse.accessToken,
-        studentId,
-        studentName
-      );
-
+      await doLogin(emailVal, passwordVal);
     } catch (err) {
-
-      console.error(
-        'SIGNUP ERROR:',
-        err
-      );
+      if (!mounted.current) return;
 
       setError(
         err instanceof Error
           ? err.message
-          : 'Error al crear cuenta'
+          : String(err)
       );
-
     } finally {
+      if (mounted.current) {
+        setLoading(false);
+      }
+    }
+  }
 
-      setLoading(false);
+  const onSubmit = (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
 
+    if (isSignUp) {
+      doSignUp(email, password, name);
+    } else {
+      doLogin(email, password);
     }
   };
 
   return (
     <div className={styles.loginContainer}>
+      <form
+        className={styles.loginBox}
+        onSubmit={onSubmit}
+        aria-label="Login form"
+      >
+        <h1>🎵 Music Learning</h1>
 
-      <div className={styles.loginBox}>
+        <div className={styles.controls}>
+          <label htmlFor="login-email">
+            Email
+          </label>
 
-        <h1>
-          🎵 Bienvenido a Music Learning
-        </h1>
-
-        <div className={styles.tabs}>
-
-          <button
-            className={`
-              ${styles.tab}
-              ${isSignUp
-                ? ''
-                : styles.active}
-            `}
-            onClick={() => {
-              setIsSignUp(false);
-              setError('');
-              setName('');
-            }}
-          >
-            Ingresar
-          </button>
-
-          <button
-            className={`
-              ${styles.tab}
-              ${isSignUp
-                ? styles.active
-                : ''}
-            `}
-            onClick={() => {
-              setIsSignUp(true);
-              setError('');
-            }}
-          >
-            Crear Cuenta
-          </button>
-
-        </div>
-
-        <form
-          onSubmit={
-            isSignUp
-              ? handleSignUp
-              : handleLogin
-          }
-        >
+          <input
+            id="login-email"
+            type="email"
+            value={email}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
+            placeholder="correo@ejemplo.com"
+            required
+          />
 
           {isSignUp && (
-
-            <div className={styles.formGroup}>
-
-              <label htmlFor="name">
-                Nombre:
+            <>
+              <label htmlFor="login-name">
+                Nombre
               </label>
 
               <input
-                id="name"
+                id="login-name"
                 type="text"
                 value={name}
                 onChange={(e) =>
@@ -273,80 +151,60 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 placeholder="Tu nombre"
                 required
               />
-
-            </div>
-
+            </>
           )}
 
-          <div className={styles.formGroup}>
+          <label htmlFor="login-password">
+            Contraseña
+          </label>
 
-            <label htmlFor="email">
-              Email:
-            </label>
+          <input
+            id="login-password"
+            type="password"
+            value={password}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+            placeholder="********"
+            required
+          />
+        </div>
 
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              placeholder="tu@email.com"
-              required
-            />
-
+        {error && (
+          <div className={styles.error}>
+            {error}
           </div>
+        )}
 
-          <div className={styles.formGroup}>
-
-            <label htmlFor="password">
-              Contraseña:
-            </label>
-
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              placeholder="tu contraseña"
-              autoComplete="current-password"
-              required
-            />
-
-          </div>
-
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
-
+        <div className={styles.actions}>
           <button
             type="submit"
-            disabled={loading}
             className={styles.submitBtn}
+            disabled={loading}
           >
-
             {loading
-              ? (
-                isSignUp
-                  ? 'Creando...'
-                  : 'Ingresando...'
-              )
-              : (
-                isSignUp
-                  ? 'Crear Cuenta'
-                  : 'Ingresar'
-              )}
-
+              ? isSignUp
+                ? 'Creando...'
+                : 'Ingresando...'
+              : isSignUp
+              ? 'Crear cuenta'
+              : 'Ingresar'}
           </button>
 
-        </form>
-
-      </div>
-
+          <button
+            type="button"
+            className={styles.secondary}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError(null);
+            }}
+          >
+            {isSignUp
+              ? '¿Ya tienes cuenta? Ingresar'
+              : 'Crear cuenta'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

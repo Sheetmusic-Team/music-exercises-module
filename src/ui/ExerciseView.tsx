@@ -55,8 +55,8 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
     if (!base || typeof base !== 'object') return null;
 
-    return base as ExerciseData;
-  }, [exercise?.id]);
+    return base;
+  }, [exercise?.data]);
 
   const hintUnlockTime = Number(src?.hintUnlockTime ?? exercise?.hintUnlockTime ?? 10);
   const isHintUnlocked = elapsedTime >= hintUnlockTime;
@@ -107,7 +107,8 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
     let cancelled = false;
 
-    try {
+  try {
+      // clear previous rendering to avoid SVG leftovers
       vexRef.current.innerHTML = '';
 
       const renderer = new Renderer(
@@ -171,17 +172,21 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
     } catch (err) {
       console.error('VEXFLOW ERROR', err);
+      // Provide a visible fallback so the parent ErrorBoundary can show details
+      if (vexRef.current) {
+        try {
+          vexRef.current.innerHTML = '<div style="color:#900;padding:8px;background:#fff6f6;border-radius:6px;">Error al renderizar la partitura</div>';
+        } catch (error_) {
+          console.error('Failed writing fallback to vexRef', error_);
+        }
+      }
     }
 
     return () => {
       cancelled = true;
     };
 
-  }, [
-    data?.clef,
-    data?.timeSignature,
-    data?.notes
-  ]);
+  }, [data]);
 
   // ⛔ guard
   if (!exercise) {
@@ -247,7 +252,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
         <div className={styles.placeholder}>
           <div className={styles.placeholderEmojis}>
             {randomEmojis.map((e, i) => (
-              <span key={i}>{e}</span>
+              <span key={`${exercise?.id ?? 'emo'}-${i}`}>{e}</span>
             ))}
           </div>
         </div>
@@ -257,7 +262,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
         <div className={styles.choices}>
           {alternatives.map((alt, i) => (
             <button
-              key={i}
+              key={`${exercise?.id ?? 'alt'}-${i}`}
               className={`${styles.choiceBtn} ${selectedIndex === i ? styles.selected : ''}`}
               onClick={() => setSelectedIndex(i)}
             >
