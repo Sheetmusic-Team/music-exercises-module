@@ -3,12 +3,12 @@ import styles from './ModeSelector.module.css';
 
 interface CommentBoxProps {
   backendUrl: string;
-  studentName: string;
+  studentId?: string;
   authToken?: string | null;
   onClose: () => void;
 }
 
-const CommentBox: React.FC<CommentBoxProps> = ({ backendUrl, studentName, authToken, onClose }) => {
+const CommentBox: React.FC<CommentBoxProps> = ({ backendUrl, studentId, authToken, onClose }) => {
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -20,10 +20,13 @@ const CommentBox: React.FC<CommentBoxProps> = ({ backendUrl, studentName, authTo
       const url = backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/comments` : '/api/comments';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+      // Enviar el comentario usando studentId si está presente
+      const body: Record<string, any> = { content: comment };
+      if (studentId) body.studentId = studentId;
       const resp = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ comment, studentName }),
+        body: JSON.stringify(body),
       });
       if (resp.ok) {
         setSent(true);
