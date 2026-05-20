@@ -1,3 +1,77 @@
+/* Modal overlay for comment box */
+.commentModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal box */
+.commentModalBox {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 2em 1.5em 1.5em 1.5em;
+  min-width: 320px;
+  max-width: 90vw;
+  width: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Close button (X) */
+.commentModalClose {
+  position: absolute;
+  top: 0.7em;
+  right: 0.7em;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.commentModalClose:hover {
+  color: #d00;
+}
+
+/* Textarea styling */
+.commentModalTextarea {
+  width: 100%;
+  padding: 0.7em;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 1em;
+  resize: vertical;
+  margin-bottom: 0.5em;
+  box-sizing: border-box;
+}
+
+/* Send button styling */
+.commentModalSendBtn {
+  background: #2a7ae2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.commentModalSendBtn:disabled {
+  background: #b3c6e2;
+  cursor: not-allowed;
+}
+.commentModalSendBtn:hover:not(:disabled) {
+  background: #1558b0;
+}
 .container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
