@@ -256,7 +256,6 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   // Keep UI on a summary view; allow the student to close session explicitly
   setAppState('summary');
-  setFeedback(null);
     } catch (error) {
       console.error('Error ending session:', error);
       onEvent({

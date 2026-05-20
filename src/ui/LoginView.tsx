@@ -93,19 +93,27 @@ export const LoginView: React.FC<LoginViewProps> = ({
         studentName
       )
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(
         '[LoginView] login error:',
         err
       )
 
-      if (mounted.current) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : String(err)
-        )
+      let msg = 'Error desconocido al iniciar sesión'
+      // Si el error tiene un mensaje, lo usamos
+      if (err instanceof Error) {
+        if (err.message.includes('400')) {
+          msg = 'Credenciales incorrectas. Por favor, revisa tu email y contraseña.'
+        } else if (err.message.includes('500')) {
+          msg = 'Error del servidor. Intenta más tarde.'
+        } else if (err.message) {
+          msg = err.message
+        }
+      } else if (typeof err === 'string') {
+        msg = err
       }
+
+      setError(msg)
     } finally {
       setLoading(false)
     }
