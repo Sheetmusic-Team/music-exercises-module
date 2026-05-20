@@ -217,7 +217,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     setShowFeedback(false);
     // keep feedback in state until next exercise is loaded to avoid flash
     // ensure we stay on 'exercise' state
-    setAppState('exercise');
+    setAppState((prev) => (prev === 'node-select' ? 'node-select' : 'exercise'));
 
     // If there is no current exercise but we have a controller, try to load one
     if (!exercise && controller) {
@@ -256,9 +256,7 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
   // Keep UI on a summary view; allow the student to close session explicitly
   setAppState('summary');
-  setExercise(null);
   setFeedback(null);
-  setController(null);
     } catch (error) {
       console.error('Error ending session:', error);
       onEvent({
