@@ -23,6 +23,24 @@ export const authClient = {
       throw new Error(msg);
     }
 
+    // Normalize common backend shapes so callers can rely on a stable object
+    if (data && typeof data === 'object') {
+      // prefer top-level accessToken, but map common variants
+      if (!data.accessToken) {
+        if (typeof data.access_token === 'string') data.accessToken = data.access_token
+        else if (typeof data.token === 'string') data.accessToken = data.token
+        else if (data.data && typeof data.data.access_token === 'string') data.accessToken = data.data.access_token
+        else if (data.data && typeof data.data.accessToken === 'string') data.accessToken = data.data.accessToken
+      }
+
+      // extract student id if present in common shapes
+      if (!data.studentId) {
+        if (data.student && (data.student.id || data.student._id)) data.studentId = data.student.id ?? data.student._id
+        else if (data.user && (data.user.id || data.user._id)) data.studentId = data.user.id ?? data.user._id
+        else if (data.data && data.data.studentId) data.studentId = data.data.studentId
+      }
+    }
+
     return data;
   },
 
@@ -41,31 +59,5 @@ export const authClient = {
     return response.json();
   },
 
-  async logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('studentId');
-    localStorage.removeItem('name');
-  },
-
-  getToken() {
-    return localStorage.getItem('token');
-  },
-
-  getStudentId() {
-    return localStorage.getItem('studentId');
-  },
-
-  getName() {
-    return localStorage.getItem('name');
-  },
-
-  setAuth(token: string, studentId: string, name: string) {
-    localStorage.setItem('token', token);
-    localStorage.setItem('studentId', studentId);
-    localStorage.setItem('name', name);
-  },
-
-  isAuthenticated() {
-    return !!localStorage.getItem('token');
-  },
+  // Métodos de storage eliminados. El estado de sesión se maneja solo en memoria.
 };

@@ -1,3 +1,4 @@
+// File: ErrorBoundary.tsx - Author: Vicente Alves
 import React from 'react';
 
 interface Props {

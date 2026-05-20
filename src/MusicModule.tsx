@@ -57,6 +57,8 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const [uiError, setUiError] = React.useState<string | null>(null);
   const [sessionId] = useState(() => `session-${Date.now()}`);
 
+  // Eliminado: auto-login desde localStorage. El usuario debe iniciar sesión manualmente.
+
   // Derived config flags (keeps dependency lists simple and stable)
   const shouldEmitSessionCompleted = React.useMemo(() => {
     return config?.emitSessionCompleted !== false;
@@ -398,6 +400,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     return () => { cancelled = true; };
   }, [appState, exercise, controller, loading, loadNextExercise]);
 
+  console.log({
+    appState,
+    token,
+    studentName,
+    studentId,
+    loading
+  })
   return (
   <div className={styles.module}>
 
@@ -418,17 +427,12 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
       <LoginView onLoginSuccess={handleLogin} />
     )}
 
-    {appState === 'mode-select' && (token && (studentName || token)) && (
+    {appState === 'mode-select' && token && (
       <ModeSelector
         onSelectMode={handleModeSelect}
         onLogout={handleLogout}
         authToken={token}
-        // Prefer explicit studentName, else try to read from localStorage (if available)
-        studentName={
-          studentName ?? (typeof globalThis !== 'undefined' && globalThis.localStorage
-            ? (globalThis.localStorage.getItem('name') || globalThis.localStorage.getItem('studentId') || '')
-            : '')
-        }
+        studentName={studentName ?? ''}
       />
     )}
 

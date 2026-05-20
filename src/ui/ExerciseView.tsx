@@ -1,3 +1,4 @@
+// File: ExerciseView.tsx - Author: Vicente Alves
 import React, { useEffect, useRef, useState } from 'react';
 import type { Exercise } from '../types/exercise';
 import styles from './ExerciseView.module.css';

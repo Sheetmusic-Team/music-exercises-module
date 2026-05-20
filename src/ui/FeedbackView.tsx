@@ -1,3 +1,4 @@
+// File: FeedbackView.tsx - Author: Vicente Alves
 // Vista de feedback al usuario
 
 import React, { useEffect } from 'react';

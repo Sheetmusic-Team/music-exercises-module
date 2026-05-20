@@ -1,3 +1,4 @@
+// File: NodeSelector.tsx - Author: Vicente Alves
 import React from 'react';
 import styles from './NodeSelector.module.css';
 import nodesJson from '../../data/nodes.json';

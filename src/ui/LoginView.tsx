@@ -1,68 +1,114 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { authClient } from '../services/auth/authClient';
-import styles from './LoginView.module.css';
+// File: src/ui/LoginView.tsx
+
+import React, { useEffect, useRef, useState } from 'react'
+import { authClient } from '../services/auth/authClient'
+import styles from './LoginView.module.css'
 
 interface LoginViewProps {
   onLoginSuccess: (
     token: string,
     studentId: string,
     name: string
-  ) => void;
+  ) => void
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
-  onLoginSuccess,
+  onLoginSuccess
 }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const mounted = useRef(true);
+  const mounted = useRef(true)
 
   useEffect(() => {
     return () => {
-      mounted.current = false;
-    };
-  }, []);
+      mounted.current = false
+    }
+  }, [])
 
   async function doLogin(
     emailVal: string,
     passwordVal: string
   ) {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
-      const response = await authClient.login(emailVal, passwordVal);
+      const response = await authClient.login(
+        emailVal,
+        passwordVal
+      )
 
-      console.info('[LoginView] login response:', response);
+      console.info(
+        '[LoginView] login response (raw):',
+        response
+      )
 
-      const token = response?.accessToken;
-      const studentId = response?.studentId || response?.student?.id || response?.user?.id;
-      let studentName = response?.name || response?.student?.name || response?.user?.email || '';
+      const token =
+        (response as any)?.accessToken ??
+        (response as any)?.access_token ??
+        (response as any)?.token ??
+        null
+
+      const studentId =
+        (response as any)?.studentId ??
+        (response as any)?.student?.id ??
+        (response as any)?.user?.id ??
+        null
+
+      let studentName =
+        (response as any)?.name ??
+        (response as any)?.student?.name ??
+        (response as any)?.user?.email ??
+        ''
+
+      console.info(
+        '[LoginView] normalized auth:',
+        {
+          token,
+          studentId,
+          studentName
+        }
+      )
 
       if (!token || !studentId) {
-        throw new Error('Respuesta de autenticaci\u00f3n incompleta (token o studentId faltante)');
+        throw new Error(
+          'Respuesta de autenticación incompleta'
+        )
       }
 
-      if (!studentName) studentName = String(studentId);
+      if (!studentName) {
+        studentName = emailVal.split('@')[0]
+      }
 
-      authClient.setAuth(token, String(studentId), studentName);
+      console.log('LLAMANDO onLoginSuccess')
 
-      if (mounted.current) onLoginSuccess(token, String(studentId), studentName);
+      onLoginSuccess(
+        String(token),
+        String(studentId),
+        studentName
+      )
+
     } catch (err) {
-      console.error('[LoginView] login error:', err);
-      if (!mounted.current) return;
-      setError(err instanceof Error ? err.message : String(err));
+      console.error(
+        '[LoginView] login error:',
+        err
+      )
+
+      if (mounted.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : String(err)
+        )
+      }
     } finally {
-      // Always clear loading state to avoid permanent spinner
-      try {
-        if (mounted.current) setLoading(false);
-      } catch (e) {
-        // ignore
+      if (mounted.current) {
+        setLoading(false)
       }
     }
   }
@@ -72,28 +118,26 @@ export const LoginView: React.FC<LoginViewProps> = ({
     passwordVal: string,
     nameVal: string
   ) {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
       await authClient.signup(
         emailVal,
         passwordVal,
         nameVal
-      );
+      )
 
-      await doLogin(emailVal, passwordVal);
+      await doLogin(emailVal, passwordVal)
     } catch (err) {
-      if (!mounted.current) return;
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : String(err)
-      );
-    } finally {
       if (mounted.current) {
-        setLoading(false);
+        setError(
+          err instanceof Error
+            ? err.message
+            : String(err)
+        )
+
+        setLoading(false)
       }
     }
   }
@@ -101,14 +145,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const onSubmit = (
     e: React.FormEvent<HTMLFormElement>
   ) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (isSignUp) {
-      doSignUp(email, password, name);
+      doSignUp(email, password, name)
     } else {
-      doLogin(email, password);
+      doLogin(email, password)
     }
-  };
+  }
 
   return (
     <div className={styles.loginContainer}>
@@ -127,6 +171,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <input
             id="login-email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) =>
               setEmail(e.target.value)
@@ -144,6 +189,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <input
                 id="login-name"
                 type="text"
+                autoComplete="name"
                 value={name}
                 onChange={(e) =>
                   setName(e.target.value)
@@ -161,6 +207,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <input
             id="login-password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) =>
               setPassword(e.target.value)
@@ -183,20 +230,24 @@ export const LoginView: React.FC<LoginViewProps> = ({
             disabled={loading}
           >
             {loading
-              ? isSignUp
-                ? 'Creando...'
-                : 'Ingresando...'
-              : isSignUp
-              ? 'Crear cuenta'
-              : 'Ingresar'}
+              ? (
+                  isSignUp
+                    ? 'Creando...'
+                    : 'Ingresando...'
+                )
+              : (
+                  isSignUp
+                    ? 'Crear cuenta'
+                    : 'Ingresar'
+                )}
           </button>
 
           <button
             type="button"
             className={styles.secondary}
             onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
+              setIsSignUp(!isSignUp)
+              setError(null)
             }}
           >
             {isSignUp
@@ -206,5 +257,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
+
+export default LoginView
