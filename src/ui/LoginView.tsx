@@ -107,9 +107,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         )
       }
     } finally {
-      if (mounted.current) {
-        setLoading(false)
-      }
+      setLoading(false)
     }
   }
 
