@@ -42,6 +42,8 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const [showFeedback, setShowFeedback] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  
+  
   interface SessionSummary {
     total_reward: number;
     node_rewards: Record<string, number>;
@@ -63,6 +65,13 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
   const shouldEmitSessionCompleted = React.useMemo(() => {
     return config?.emitSessionCompleted !== false;
   }, [config?.emitSessionCompleted]);
+
+  const resetSessionUI = React.useCallback(() => {
+  setFeedback(null);
+  setShowFeedback(false);
+  setSessionSummary(null);
+  setPendingSessionCompletedEvent(null);
+}, []);
 
   // Manejar login
   const handleLogin = useCallback((accessToken: string, id: string, name: string) => {
@@ -125,6 +134,9 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
               onEvent
             );
             setController(sessionController);
+
+            resetSessionUI();
+
             loadNextExercise(sessionController).catch((e) => {
               console.error('loadNextExercise failed', e);
               setUiError(String(e));
@@ -153,11 +165,18 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
           studentId,
           token,
           sessionId,
-          nodeId,
+          undefined,
           onEvent
         );
+
         setController(sessionController);
-        loadNextExercise(sessionController);
+
+        resetSessionUI();
+
+        loadNextExercise(sessionController).catch((e) => {
+          console.error('loadNextExercise failed', e);
+          setUiError(String(e));
+        });
       }
     },
     [studentId, token, sessionId, onEvent, loadNextExercise]
@@ -254,8 +273,8 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
         setPendingSessionCompletedEvent(ev);
       }
 
-  // Keep UI on a summary view; allow the student to close session explicitly
-  setAppState('summary');
+      // Keep UI on a summary view; allow the student to close session explicitly
+      setAppState('summary');
     } catch (error) {
       console.error('Error ending session:', error);
       onEvent({
@@ -351,6 +370,8 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
 
 
 
+  
+
   const handleLogout = useCallback(() => {
     // Clear all session-related state so no stale UI remains (feedback,
     // exercises, summaries). Then go back to login.
@@ -405,73 +426,73 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
     loading
   })
   return (
-  <div className={styles.module}>
+    <div className={styles.module}>
 
-    {uiError && (
-      <div className={styles.uiError}>
-        <strong>Error:</strong> {uiError}
-      </div>
-    )}
-
-    {loading && (
-      <div className={styles.loadingOverlay}>
-        <div className={styles.spinner} />
-        <h3>Cargando...</h3>
-      </div>
-    )}
-
-    {appState === 'login' && (
-      <LoginView onLoginSuccess={handleLogin} />
-    )}
-
-    {appState === 'mode-select' && token && (
-      <ModeSelector
-        onSelectMode={handleModeSelect}
-        onLogout={handleLogout}
-        authToken={token}
-        studentName={studentName ?? ''}
-      />
-    )}
-
-    {appState === 'node-select' && (
-      <NodeSelector
-        onSelectNode={handleNodeSelect}
-        onBack={handleBackFromNodeSelector}
-      />
-    )}
-
-    {appState === 'exercise' &&
-      !loading &&
-      !exercise && (
-        <div>
-          <h2>No hay ejercicio cargado</h2>
+      {uiError && (
+        <div className={styles.uiError}>
+          <strong>Error:</strong> {uiError}
         </div>
       )}
 
-    {appState === 'exercise' &&
-      exercise &&
-      !showFeedback && (
-        <div className={styles.exerciseContainer}>
-          <React.Suspense fallback={<div>Cargando componente...</div>}>
-            <ErrorBoundary onError={(err, info) => {
-              console.error('[MusicModule] ErrorBoundary caught render error for exercise', { err, info, exercise });
-            }}>
-              <ExerciseView
-                exercise={exercise}
-                onSubmit={handleSubmit}
-                allowHints={config?.allowHints}
-              />
-            </ErrorBoundary>
-          </React.Suspense>
-
-          <button
-            onClick={handleEndSession}
-            className={styles.endSessionBtn}
-          >
-            Terminar Sesión
-          </button>
+      {loading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.spinner} />
+          <h3>Cargando...</h3>
         </div>
       )}
+
+      {appState === 'login' && (
+        <LoginView onLoginSuccess={handleLogin} />
+      )}
+
+      {appState === 'mode-select' && token && (
+        <ModeSelector
+          onSelectMode={handleModeSelect}
+          onLogout={handleLogout}
+          authToken={token}
+          studentName={studentName ?? ''}
+        />
+      )}
+
+      {appState === 'node-select' && (
+        <NodeSelector
+          onSelectNode={handleNodeSelect}
+          onBack={handleBackFromNodeSelector}
+        />
+      )}
+
+      {appState === 'exercise' &&
+        !loading &&
+        !exercise && (
+          <div>
+            <h2>No hay ejercicio cargado</h2>
+          </div>
+        )}
+
+      {appState === 'exercise' &&
+        exercise &&
+        !showFeedback && (
+          <div className={styles.exerciseContainer}>
+            <React.Suspense fallback={<div>Cargando componente...</div>}>
+              <ErrorBoundary onError={(err, info) => {
+                console.error('[MusicModule] ErrorBoundary caught render error for exercise', { err, info, exercise });
+              }}>
+                <ExerciseView
+                  exercise={exercise}
+                  onSubmit={handleSubmit}
+                  allowHints={config?.allowHints}
+                />
+              </ErrorBoundary>
+            </React.Suspense>
+
+            <button
+              onClick={handleEndSession}
+              className={styles.endSessionBtn}
+            >
+              Terminar Sesión
+            </button>
+          </div>
+        )}
 
       {sessionSummary && (
         <section className={styles.sessionSummaryCard} aria-label="Resumen de la sesión">
@@ -602,42 +623,42 @@ export const MusicModule: React.FC<MusicModuleProps> = ({ config, onEvent }) => 
         </section>
       )}
 
-    {appState === 'exercise' &&
-      feedback && (
-        <div className={styles.feedbackContainer}>
+      {appState === 'exercise' &&
+        feedback && (
+          <div className={styles.feedbackContainer}>
 
-          <FeedbackView
-            feedback={feedback}
-            isOpen={showFeedback}
-            onClose={handleCloseFeedback}
-          />
+            <FeedbackView
+              feedback={feedback}
+              isOpen={showFeedback}
+              onClose={handleCloseFeedback}
+            />
 
-          {showFeedback && (
-            <div className={styles.feedbackActions}>
+            {showFeedback && (
+              <div className={styles.feedbackActions}>
 
-              <button
-                className={styles.nextBtn}
-                onClick={handleNextExercise}
-                disabled={loading}
-              >
-                {loading
-                  ? '⏳ Cargando...'
-                  : '➜ Siguiente ejercicio'}
-              </button>
+                <button
+                  className={styles.nextBtn}
+                  onClick={handleNextExercise}
+                  disabled={loading}
+                >
+                  {loading
+                    ? '⏳ Cargando...'
+                    : '➜ Siguiente ejercicio'}
+                </button>
 
-              <button
-                onClick={handleEndSession}
-                className={styles.endSessionBtn}
-              >
-                Terminar Sesión
-              </button>
+                <button
+                  onClick={handleEndSession}
+                  className={styles.endSessionBtn}
+                >
+                  Terminar Sesión
+                </button>
 
-            </div>
-          )}
+              </div>
+            )}
 
-        </div>
-      )}
+          </div>
+        )}
 
-  </div>
-);
+    </div>
+  );
 };
