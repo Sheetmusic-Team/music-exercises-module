@@ -2,6 +2,7 @@
   --accent-1: #7a1bd8;
   --accent-2: #5a0f9f;
   --muted: #6b6375;
+  --text: #0f1724;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -95,7 +96,7 @@
 
 .prompt {
   font-size: 16px;
-  color: var(--muted);
+  color: var(--text);
   margin: 0;
   font-weight: 600;
   text-align: center;
@@ -206,4 +207,18 @@
   .hintBtn { width: 100%; }
 
   .staffContainer { padding: 12px; }
+}
+
+.placeholderPrompt {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.placeholderHeaderEmojis {
+  display: flex;
+  gap: 6px;
+  font-size: 18px;
 }

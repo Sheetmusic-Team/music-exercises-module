@@ -11,7 +11,7 @@ import {
   Formatter
 } from 'vexflow';
 
-const emojiPool = ['❓','🤔','🧐','❔','💭','🎯','🔎'];
+const emojiPool = ['❓', '🤔', '🧐', '❔', '💭', '🎯', '🔎'];
 
 interface SubmitPayload extends Record<string, unknown> {
   correct: boolean;
@@ -108,7 +108,7 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
 
     let cancelled = false;
 
-  try {
+    try {
       // clear previous rendering to avoid SVG leftovers
       vexRef.current.innerHTML = '';
 
@@ -236,7 +236,15 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
           {displayType.charAt(0).toUpperCase() + displayType.slice(1)}
         </h2>
 
-        <p className={styles.prompt}>{displayPrompt}</p>
+        {hasNotes ? (
+          <p className={styles.prompt}>{displayPrompt}</p>
+        ) : (
+          <div className={styles.placeholderHeaderEmojis}>
+            {randomEmojis.map((e, i) => (
+              <span key={`${exercise?.id ?? 'emo'}-${i}`}>{e}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={styles.scoreIndicator}>
@@ -251,11 +259,11 @@ export const ExerciseView: React.FC<ExerciseViewProps> = ({
         </div>
       ) : (
         <div className={styles.placeholder}>
-          <div className={styles.placeholderEmojis}>
-            {randomEmojis.map((e, i) => (
-              <span key={`${exercise?.id ?? 'emo'}-${i}`}>{e}</span>
-            ))}
+          <div className={styles.placeholderPrompt}>
+            {displayPrompt}
           </div>
+
+
         </div>
       )}
 
